@@ -54,7 +54,7 @@ export default function Admin() {
   const loadCakes = useCallback(async () => {
     setLoading(true);
     try {
-      const q = query(collection(db, "cakes"), orderBy("order", "asc"));
+      const q = query(collection(db, "cakes"), orderBy("createdAt", "desc"));
       const snapshot = await getDocs(q);
       const data = snapshot.docs.map((d) => ({
         id: d.id,
@@ -96,7 +96,6 @@ export default function Admin() {
     } else {
       await addDoc(collection(db, "cakes"), {
         ...cakeData,
-        order: cakes.length + 1,
         createdAt: serverTimestamp(),
       });
     }
