@@ -2406,3 +2406,30 @@ img {
     grid-template-columns: 1fr;
   }
 }
+
+/* === Pagination === */
+.admin-page .pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1.5rem 2rem;
+}
+
+.admin-page .pagination .btn-ghost {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
+
+.admin-page .pagination .btn-ghost:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.admin-page .pagination-info {
+  font-size: 0.875rem;
+  color: var(--admin-muted);
+  font-weight: 500;
+  min-width: 100px;
+  text-align: center;
+}

@@ -9,7 +9,7 @@ export async function loadCakeData(): Promise<CakeData[]> {
   if (cachedData) return cachedData;
 
   try {
-    const q = query(collection(db, "cakes"), orderBy("createdAt", "desc"));
+    const q = query(collection(db, "cakes"), orderBy("order", "asc"));
     const snapshot = await getDocs(q);
 
     if (snapshot.empty) {
