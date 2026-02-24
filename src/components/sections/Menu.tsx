@@ -1,4 +1,7 @@
+import { useRef, useLayoutEffect } from "react";
 import { Link } from "react-router-dom";
+import gsap from "gsap";
+import ScrollTrigger from "gsap/ScrollTrigger";
 import { cloudinaryUrl } from "@/lib/cloudinaryUrl";
 
 const MENU_ITEMS = [
@@ -36,8 +39,52 @@ const MENU_ITEMS = [
 ];
 
 export default function Menu() {
+  const sectionRef = useRef<HTMLElement>(null);
+
+  useLayoutEffect(() => {
+    const ctx = gsap.context(() => {
+      // Menu cards stagger in
+      gsap.from(".menu-item", {
+        scrollTrigger: {
+          trigger: ".menu-item",
+          start: "top 85%",
+        },
+        y: 40,
+        opacity: 0,
+        duration: 0.7,
+        stagger: 0.15,
+        ease: "power3.out",
+      });
+
+      // Underline grows
+      gsap.from(".menu-line", {
+        scrollTrigger: {
+          trigger: ".menu-line",
+          start: "top 90%",
+        },
+        scaleX: 0,
+        duration: 0.8,
+        ease: "power2.out",
+      });
+
+      // CTA button slides up
+      gsap.from(".menu-cta-wrap", {
+        scrollTrigger: {
+          trigger: ".menu-cta-wrap",
+          start: "top 90%",
+        },
+        y: 30,
+        opacity: 0,
+        duration: 0.6,
+        ease: "power2.out",
+      });
+    }, sectionRef);
+
+    return () => ctx.revert();
+  }, []);
+
   return (
-    <section id="menu" className="relative overflow-hidden py-20 md:py-28 px-4 md:px-8 lg:px-12 max-w-7xl mx-auto">
+    <section ref={sectionRef} id="menu" className="relative overflow-hidden py-20 md:py-28 px-4 md:px-8 lg:px-12 max-w-7xl mx-auto">
       {/* Background gradient */}
       <div className="menu-bg-gradient absolute inset-0 opacity-30" />
 

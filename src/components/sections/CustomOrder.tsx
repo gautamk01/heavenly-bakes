@@ -1,3 +1,6 @@
+import { useRef, useLayoutEffect } from "react";
+import gsap from "gsap";
+import ScrollTrigger from "gsap/ScrollTrigger";
 import { cloudinaryUrl } from "@/lib/cloudinaryUrl";
 
 interface CustomOrderProps {
@@ -23,8 +26,29 @@ const STEPS = [
 ];
 
 export default function CustomOrder({ onBookClick }: CustomOrderProps) {
+  const sectionRef = useRef<HTMLElement>(null);
+
+  useLayoutEffect(() => {
+    const ctx = gsap.context(() => {
+      // Step icons scale in one by one
+      gsap.from(".step-icon", {
+        scrollTrigger: {
+          trigger: ".step-icon",
+          start: "top 85%",
+        },
+        scale: 0,
+        opacity: 0,
+        duration: 0.5,
+        stagger: 0.2,
+        ease: "back.out(1.5)",
+      });
+    }, sectionRef);
+
+    return () => ctx.revert();
+  }, []);
+
   return (
-    <section id="custom" className="relative bg-black text-white py-20 md:py-28 overflow-hidden">
+    <section ref={sectionRef} id="custom" className="relative bg-black text-white py-20 md:py-28 overflow-hidden">
       {/* Background image */}
       <div
         className="absolute inset-0 bg-cover bg-center opacity-20"
@@ -87,7 +111,7 @@ export default function CustomOrder({ onBookClick }: CustomOrderProps) {
         <div className="reveal-section grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 mb-14 md:mb-20">
           {STEPS.map((step, index) => (
             <div key={step.title} className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full border border-white/20 flex items-center justify-center">
+              <div className="step-icon w-16 h-16 mx-auto mb-4 rounded-full border border-white/20 flex items-center justify-center">
                 <span className="material-icons text-2xl text-primary">{step.icon}</span>
               </div>
               <p className="font-body text-xs text-white/40 uppercase tracking-widest mb-2">Step {index + 1}</p>

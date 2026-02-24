@@ -1,5 +1,6 @@
 import { useRef, useLayoutEffect } from "react";
 import gsap from "gsap";
+import ScrollTrigger from "gsap/ScrollTrigger";
 
 const TESTIMONIALS = [
   {
@@ -137,7 +138,26 @@ function TestimonialCard({
 }
 
 export default function Testimonials() {
+  const sectionRef = useRef<HTMLElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const ctx = gsap.context(() => {
+      // Header fades down into view
+      gsap.from(".testimonials-header", {
+        scrollTrigger: {
+          trigger: ".testimonials-header",
+          start: "top 85%",
+        },
+        y: -30,
+        opacity: 0,
+        duration: 0.7,
+        ease: "power2.out",
+      });
+    }, sectionRef);
+
+    return () => ctx.revert();
+  }, []);
 
   useLayoutEffect(() => {
     const track = trackRef.current;
@@ -165,6 +185,7 @@ export default function Testimonials() {
 
   return (
     <section
+      ref={sectionRef}
       id="testimonials"
       className="relative py-20 bg-white dark:bg-gray-900 overflow-hidden"
     >
@@ -227,7 +248,7 @@ export default function Testimonials() {
       </svg>
 
       {/* Header */}
-      <div className="text-center mb-12 px-4">
+      <div className="testimonials-header text-center mb-12 px-4">
         <span className="text-sm font-medium tracking-widest uppercase text-primary">
           Happy Customers
         </span>

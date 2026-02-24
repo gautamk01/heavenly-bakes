@@ -1,8 +1,45 @@
+import { useRef, useLayoutEffect } from "react";
+import gsap from "gsap";
+import ScrollTrigger from "gsap/ScrollTrigger";
 import { cloudinaryUrl } from "@/lib/cloudinaryUrl";
 
 export default function About() {
+  const sectionRef = useRef<HTMLElement>(null);
+
+  useLayoutEffect(() => {
+    const ctx = gsap.context(() => {
+      // Image slides in from right
+      gsap.from(".about-image", {
+        scrollTrigger: {
+          trigger: ".about-image",
+          start: "top 80%",
+        },
+        x: 60,
+        opacity: 0,
+        duration: 0.9,
+        ease: "power3.out",
+      });
+
+      // Badge pops in
+      gsap.from(".about-badge", {
+        scrollTrigger: {
+          trigger: ".about-badge",
+          start: "top 85%",
+        },
+        scale: 0,
+        opacity: 0,
+        duration: 0.5,
+        delay: 0.4,
+        ease: "back.out(1.7)",
+      });
+    }, sectionRef);
+
+    return () => ctx.revert();
+  }, []);
+
   return (
     <section
+      ref={sectionRef}
       id="about"
       className="w-full py-20 md:py-32 bg-white dark:bg-zinc-900/50 relative overflow-hidden"
     >
@@ -87,10 +124,10 @@ export default function About() {
             <img
               src={cloudinaryUrl("/Cake%20images/p35/heavenlybakes.by.divya_1644635390_2771725002020842980_5465995859.jpg")}
               alt="Elegant Black Forest cake with buttercream piped flowers"
-              className="w-full h-auto rounded-2xl shadow-xl object-cover"
+              className="about-image w-full h-auto rounded-2xl shadow-xl object-cover"
               loading="lazy"
             />
-            <div className="absolute -bottom-4 -left-4 md:-bottom-6 md:-left-6 bg-primary text-white px-5 py-3 rounded-xl font-display italic text-sm md:text-base shadow-lg">
+            <div className="about-badge absolute -bottom-4 -left-4 md:-bottom-6 md:-left-6 bg-primary text-white px-5 py-3 rounded-xl font-display italic text-sm md:text-base shadow-lg">
               Baking since 2019
             </div>
           </div>

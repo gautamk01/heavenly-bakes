@@ -1,4 +1,7 @@
+import { useRef, useLayoutEffect } from "react";
 import { Link } from "react-router-dom";
+import gsap from "gsap";
+import ScrollTrigger from "gsap/ScrollTrigger";
 
 const QUICK_LINKS = [
   { label: "Menu", href: "#menu" },
@@ -8,12 +11,32 @@ const QUICK_LINKS = [
 ];
 
 export default function Footer() {
+  const footerRef = useRef<HTMLElement>(null);
+
+  useLayoutEffect(() => {
+    const ctx = gsap.context(() => {
+      gsap.from(".footer-col", {
+        scrollTrigger: {
+          trigger: ".footer-col",
+          start: "top 90%",
+        },
+        y: 30,
+        opacity: 0,
+        duration: 0.6,
+        stagger: 0.15,
+        ease: "power2.out",
+      });
+    }, footerRef);
+
+    return () => ctx.revert();
+  }, []);
+
   return (
-    <footer id="contact" className="bg-zinc-900 text-white">
+    <footer ref={footerRef} id="contact" className="bg-zinc-900 text-white">
       <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12 py-16 md:py-20">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-8">
           {/* Brand Info */}
-          <div>
+          <div className="footer-col">
             <h3 className="font-display text-2xl md:text-3xl text-primary mb-4">Heavenly Bakes</h3>
             <p className="font-body text-sm md:text-base text-white/50 leading-relaxed max-w-sm">
               Handcrafted with love by Divya. Every crumb tells a story of passion, patience, and the finest ingredients — baked fresh for you.
@@ -21,7 +44,7 @@ export default function Footer() {
           </div>
 
           {/* Quick Links */}
-          <div>
+          <div className="footer-col">
             <h4 className="font-display text-lg mb-4 text-white/80">Quick Links</h4>
             <ul className="space-y-3">
               {QUICK_LINKS.map((link) => (
@@ -47,7 +70,7 @@ export default function Footer() {
           </div>
 
           {/* Get in Touch */}
-          <div>
+          <div className="footer-col">
             <h4 className="font-display text-lg mb-4 text-white/80">Get in Touch</h4>
             <p className="font-body text-sm text-white/50 leading-relaxed mb-4">
               Have a question or want to place an order? Reach out on Instagram — we'd love to hear from you.

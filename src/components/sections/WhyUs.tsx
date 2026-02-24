@@ -1,9 +1,82 @@
+import { useRef, useLayoutEffect } from "react";
 import { Link } from "react-router-dom";
+import gsap from "gsap";
+import ScrollTrigger from "gsap/ScrollTrigger";
 import { cloudinaryUrl } from "@/lib/cloudinaryUrl";
 
 export default function WhyUs() {
+  const sectionRef = useRef<HTMLElement>(null);
+
+  useLayoutEffect(() => {
+    const ctx = gsap.context(() => {
+      // Intro text slides in from left
+      gsap.from(".whyus-intro", {
+        scrollTrigger: {
+          trigger: ".whyus-intro",
+          start: "top 85%",
+        },
+        x: -40,
+        opacity: 0,
+        duration: 0.7,
+        ease: "power2.out",
+      });
+
+      // Pillar circles pop in with bounce
+      gsap.from(".whyus-pillar", {
+        scrollTrigger: {
+          trigger: ".whyus-pillar",
+          start: "top 85%",
+        },
+        scale: 0,
+        opacity: 0,
+        duration: 0.5,
+        stagger: 0.18,
+        ease: "back.out(1.5)",
+      });
+
+      // Feature image scales in
+      gsap.from(".whyus-image", {
+        scrollTrigger: {
+          trigger: ".whyus-image",
+          start: "top 80%",
+        },
+        scale: 0.9,
+        opacity: 0,
+        duration: 0.8,
+        ease: "power2.out",
+      });
+
+      // "Why Choose Us" heading fades up
+      gsap.from(".whyus-heading", {
+        scrollTrigger: {
+          trigger: ".whyus-heading",
+          start: "top 85%",
+        },
+        y: 25,
+        opacity: 0,
+        duration: 0.6,
+        ease: "power2.out",
+      });
+
+      // Stats cards stagger in
+      gsap.from(".stat-card", {
+        scrollTrigger: {
+          trigger: ".stat-card",
+          start: "top 85%",
+        },
+        y: 30,
+        opacity: 0,
+        duration: 0.6,
+        stagger: 0.12,
+        ease: "power3.out",
+      });
+    }, sectionRef);
+
+    return () => ctx.revert();
+  }, []);
+
   return (
-    <section className="w-full py-20 md:py-32 bg-background-light dark:bg-background-dark overflow-hidden relative">
+    <section ref={sectionRef} className="w-full py-20 md:py-32 bg-background-light dark:bg-background-dark overflow-hidden relative">
       {/* Bakery Doodles for Why Section */}
       <div className="absolute inset-0 w-full h-full pointer-events-none z-[0]">
         {/* Doodle: Candy / Lollipop - top right */}
@@ -75,7 +148,7 @@ export default function WhyUs() {
         {/* Top Row: Intro text + Feature pillars */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-24 gap-12 lg:gap-16">
           {/* Left: Intro copy */}
-          <div className="lg:w-1/3 space-y-6 reveal-section">
+          <div className="whyus-intro lg:w-1/3 space-y-6">
             <p className="text-xs uppercase tracking-[0.3em] text-primary font-medium">
               Why Heavenly Bakes
             </p>
@@ -119,7 +192,7 @@ export default function WhyUs() {
               </svg>
 
               {/* Pillar 1 (top-left) */}
-              <div className="absolute left-[8%] top-[5px] flex flex-col items-center max-w-[180px] text-center reveal-section z-10">
+              <div className="whyus-pillar absolute left-[8%] top-[5px] flex flex-col items-center max-w-[180px] text-center z-10">
                 <div className="w-[88px] h-[88px] bg-primary rounded-full flex items-center justify-center text-white mb-4 shadow-xl ring-4 ring-background-light dark:ring-background-dark">
                   <span className="material-icons text-3xl">local_shipping</span>
                 </div>
@@ -132,7 +205,7 @@ export default function WhyUs() {
               </div>
 
               {/* Pillar 2 (center, gentle dip) */}
-              <div className="absolute left-1/2 -translate-x-1/2 top-[80px] flex flex-col items-center max-w-[180px] text-center reveal-section z-10">
+              <div className="whyus-pillar absolute left-1/2 -translate-x-1/2 top-[80px] flex flex-col items-center max-w-[180px] text-center z-10">
                 <div className="w-[88px] h-[88px] bg-primary rounded-full flex items-center justify-center text-white mb-4 shadow-xl ring-4 ring-background-light dark:ring-background-dark">
                   <span className="material-icons text-3xl">eco</span>
                 </div>
@@ -145,7 +218,7 @@ export default function WhyUs() {
               </div>
 
               {/* Pillar 3 (top-right) */}
-              <div className="absolute right-[8%] top-[5px] flex flex-col items-center max-w-[180px] text-center reveal-section z-10">
+              <div className="whyus-pillar absolute right-[8%] top-[5px] flex flex-col items-center max-w-[180px] text-center z-10">
                 <div className="w-[88px] h-[88px] bg-primary rounded-full flex items-center justify-center text-white mb-4 shadow-xl ring-4 ring-background-light dark:ring-background-dark">
                   <span className="material-icons text-3xl">card_giftcard</span>
                 </div>
@@ -207,7 +280,7 @@ export default function WhyUs() {
 
             <img
               alt="Beautifully decorated celebration cake by Heavenly Bakes"
-              className="relative z-10 w-full h-auto object-cover rounded-2xl shadow-2xl transform transition-transform duration-500 group-hover:scale-[1.02]"
+              className="whyus-image relative z-10 w-full h-auto object-cover rounded-2xl shadow-2xl transform transition-transform duration-500 group-hover:scale-[1.02]"
               src={cloudinaryUrl("/Cake%20images/p26/heavenlybakes.by.divya_1655043449_2859034135212055047_5465995859.jpg")}
               loading="lazy"
             />
@@ -222,8 +295,8 @@ export default function WhyUs() {
           </div>
 
           {/* Right: Why Choose Us + Stats */}
-          <div className="lg:w-1/2 w-full reveal-section">
-            <div className="mb-10">
+          <div className="lg:w-1/2 w-full">
+            <div className="whyus-heading mb-10">
               <p className="font-display text-xl text-primary mb-2 font-bold italic">
                 Why Choose Us
               </p>
@@ -241,7 +314,7 @@ export default function WhyUs() {
 
             {/* Stats grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <div className="bg-primary dark:bg-primary/90 p-7 rounded-xl text-white shadow-lg hover:shadow-xl transition-shadow">
+              <div className="stat-card bg-primary dark:bg-primary/90 p-7 rounded-xl text-white shadow-lg hover:shadow-xl transition-shadow">
                 <div className="text-3xl font-bold font-display mb-2">126+</div>
                 <p className="text-white/85 text-sm mb-5 leading-snug font-body">
                   Unique cake designs: themed, tiered, and custom creations
@@ -253,7 +326,7 @@ export default function WhyUs() {
                   View Portfolio
                 </Link>
               </div>
-              <div className="bg-primary dark:bg-primary/90 p-7 rounded-xl text-white shadow-lg hover:shadow-xl transition-shadow">
+              <div className="stat-card bg-primary dark:bg-primary/90 p-7 rounded-xl text-white shadow-lg hover:shadow-xl transition-shadow">
                 <div className="text-3xl font-bold font-display mb-2">100%</div>
                 <p className="text-white/85 text-sm mb-5 leading-snug font-body">
                   Natural ingredients. No preservatives or artificial colours
@@ -265,7 +338,7 @@ export default function WhyUs() {
                   Our Story
                 </a>
               </div>
-              <div className="bg-primary dark:bg-primary/90 p-7 rounded-xl text-white shadow-lg hover:shadow-xl transition-shadow">
+              <div className="stat-card bg-primary dark:bg-primary/90 p-7 rounded-xl text-white shadow-lg hover:shadow-xl transition-shadow">
                 <div className="text-3xl font-bold font-display mb-2">1500+</div>
                 <p className="text-white/85 text-sm mb-5 leading-snug font-body">
                   Happy customers celebrating their special moments with us
@@ -277,7 +350,7 @@ export default function WhyUs() {
                   Read Reviews
                 </a>
               </div>
-              <div className="bg-primary dark:bg-primary/90 p-7 rounded-xl text-white shadow-lg hover:shadow-xl transition-shadow">
+              <div className="stat-card bg-primary dark:bg-primary/90 p-7 rounded-xl text-white shadow-lg hover:shadow-xl transition-shadow">
                 <div className="text-3xl font-bold font-display mb-2">24h</div>
                 <p className="text-white/85 text-sm mb-5 leading-snug font-body">
                   Freshness guaranteed. Every order baked within a day of
