@@ -52,6 +52,10 @@ export default function Preloader() {
       return;
     }
 
+    // Lock scroll during preloader
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+
     // Mark as shown for this session
     sessionStorage.setItem("preloaderShown", "true");
 
@@ -248,11 +252,19 @@ export default function Preloader() {
       isMobile ? "-=0.3" : "-=1.5",
     );
 
+    // Unlock scroll after preloader finishes
+    t1.call(() => {
+      document.documentElement.style.overflow = "";
+      document.body.style.overflow = "";
+    });
+
     // Wire master timeline into context so other components can chain onto it
     registerTimeline(t1);
 
     return () => {
       t1.kill();
+      document.documentElement.style.overflow = "";
+      document.body.style.overflow = "";
       // Clean up spawned icons
       if (iconsRef.current) iconsRef.current.innerHTML = "";
     };
@@ -274,8 +286,8 @@ export default function Preloader() {
       <div className="preloader-content">
         <div className="preloader-footer">
           <p>
-            Space unfold in light and shadow , where structure finds its quiet
-            rhythm and time align in harmony
+            Handcrafted with love, baked with patience — something sweet is on
+            its way
           </p>
         </div>
       </div>

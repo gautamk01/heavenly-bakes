@@ -1,4 +1,4 @@
-import { useRef, useLayoutEffect } from "react";
+import { useRef, useLayoutEffect, useState } from "react";
 import gsap from "gsap";
 import ScrollTrigger from "gsap/ScrollTrigger";
 import { useCakeData } from "@/hooks/useCakeData";
@@ -15,6 +15,8 @@ export default function ScatterGallery() {
   const introHeadingRef = useRef<HTMLHeadingElement>(null);
   const scatterHeadingRef = useRef<HTMLHeadingElement>(null);
   const cardsContainerRef = useRef<HTMLDivElement>(null);
+  const scrollHintRef = useRef<HTMLDivElement>(null);
+  const [showHint, setShowHint] = useState(true);
   const { cakes } = useCakeData();
 
   useLayoutEffect(() => {
@@ -367,6 +369,16 @@ export default function ScatterGallery() {
       pin: true,
       pinSpacing: true,
       onUpdate: ({ progress }) => {
+        // Fade out scroll hint as soon as user starts scrolling
+        if (scrollHintRef.current) {
+          if (progress > 0.02) {
+            if (showHint) {
+              gsap.to(scrollHintRef.current, { opacity: 0, duration: 0.4, ease: "power2.out" });
+              setShowHint(false);
+            }
+          }
+        }
+
         if (progress <= introRatio) {
           // INTRO PHASE
           const introProgress = progress / introRatio;
@@ -565,6 +577,14 @@ export default function ScatterGallery() {
         ref={scatterHeadingRef}
         className="scatter-heading font-display text-text-light dark:text-text-dark"
       />
+
+      {/* Scroll-down hint */}
+      <div ref={scrollHintRef} className="scroll-hint">
+        <span className="scroll-hint-text">Scroll to explore</span>
+        <div className="scroll-hint-arrow">
+          <span className="material-icons">expand_more</span>
+        </div>
+      </div>
     </section>
   );
 }

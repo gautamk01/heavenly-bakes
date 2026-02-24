@@ -68,28 +68,23 @@ export default function Hero({ onBookClick }: { onBookClick?: () => void }) {
         if (subtextSplit) gsap.set(subtextSplit.lines, { y: "100%" });
         gsap.set(".btn-oval", { scale: 0, opacity: 0 });
         gsap.set(".hero-line-art", { opacity: 0 });
+        gsap.set(".hero-carousel-img", { opacity: 0, scale: 0.5 });
+        gsap.set(".hero-text-content", { opacity: 0 });
 
         onPreloaderComplete(() => {
           const isDesktop = !isMobile;
+          const tl = gsap.timeline();
 
-          // Show main + sections
-          gsap.to("main, section, footer", {
-            autoAlpha: 1,
-            duration: 0.4,
-            ease: "power2.out",
-          });
-
-          // Carousel images reveal
-          gsap.set(".hero-carousel-img.scatter-img", { opacity: 0 });
-          gsap.to(".hero-carousel-img.scatter-img", {
+          // Phase 1: Images fly in
+          tl.to(".hero-carousel-img.scatter-img", {
             opacity: isDesktop ? 1 : 0.3,
-            duration: isDesktop ? 1 : 0.8,
-            ease: "power2.out",
-            stagger: isDesktop ? 0.3 : 0.15,
-            delay: isDesktop ? 0 : 0.1,
+            scale: 1,
+            duration: 0.8,
+            ease: "back.out(1.4)",
+            stagger: 0.2,
           });
 
-          // SVG line-art stroke draw-in
+          // Phase 2: SVG line-art draws in (overlapping with images)
           const heroLinePaths =
             gsap.utils.toArray<SVGPathElement>(".hero-line-path");
           if (heroLinePaths.length > 0) {
@@ -100,66 +95,82 @@ export default function Hero({ onBookClick }: { onBookClick?: () => void }) {
                 strokeDashoffset: length,
               });
             });
-            gsap.to(".hero-line-art", {
-              opacity: isDesktop ? 0.18 : 0.12,
-              duration: 1,
-              ease: "power2.out",
-              stagger: 0.15,
-            });
-            gsap.to(heroLinePaths, {
-              strokeDashoffset: 0,
-              duration: isDesktop ? 2.5 : 1.8,
-              ease: "power2.inOut",
-              stagger: isDesktop ? 0.3 : 0.2,
-            });
-          }
-
-          // Hero text
-          gsap.to(".hero-text-content", {
-            opacity: 1,
-            duration: 0.3,
-            ease: "power2.out",
-          });
-
-          // Headline chars
-          if (headlineSplit) {
-            gsap.to(headlineSplit.chars, {
-              y: 0,
-              stagger: isDesktop ? 0.03 : 0.02,
-              duration: isDesktop ? 1 : 0.8,
-              ease: "power4.out",
-              delay: 0.2,
-              onComplete: () => {
-                document.querySelectorAll("main h2 .char").forEach((el) => {
-                  if (el.parentElement)
-                    el.parentElement.style.overflow = "visible";
-                });
+            tl.to(
+              ".hero-line-art",
+              {
+                opacity: isDesktop ? 0.18 : 0.12,
+                duration: 1,
+                ease: "power2.out",
+                stagger: 0.15,
               },
-            });
+              0.3,
+            );
+            tl.to(
+              heroLinePaths,
+              {
+                strokeDashoffset: 0,
+                duration: isDesktop ? 2.5 : 1.8,
+                ease: "power2.inOut",
+                stagger: isDesktop ? 0.3 : 0.2,
+              },
+              0.3,
+            );
           }
 
-          // Subtext
+          // Phase 3: Text content appears
+          tl.to(
+            ".hero-text-content",
+            { opacity: 1, duration: 0.4, ease: "power2.out" },
+            0.6,
+          );
+
+          if (headlineSplit) {
+            tl.to(
+              headlineSplit.chars,
+              {
+                y: 0,
+                stagger: isDesktop ? 0.03 : 0.02,
+                duration: isDesktop ? 1 : 0.8,
+                ease: "power4.out",
+                onComplete: () => {
+                  document.querySelectorAll("main h2 .char").forEach((el) => {
+                    if (el.parentElement)
+                      el.parentElement.style.overflow = "visible";
+                  });
+                },
+              },
+              0.7,
+            );
+          }
+
           if (subtextSplit) {
-            gsap.to(subtextSplit.lines, {
-              y: 0,
-              stagger: 0.1,
-              duration: isDesktop ? 1 : 0.8,
-              ease: "power4.out",
-              delay: 0.4,
-            });
+            tl.to(
+              subtextSplit.lines,
+              {
+                y: 0,
+                stagger: 0.1,
+                duration: isDesktop ? 1 : 0.8,
+                ease: "power4.out",
+              },
+              0.9,
+            );
           }
 
-          // Button
-          gsap.to(".btn-oval", {
-            scale: 1,
-            opacity: 1,
-            duration: isDesktop ? 1 : 0.8,
-            ease: "power4.out",
-            delay: 0.5,
-          });
+          // Phase 4: Buttons pop in
+          tl.to(
+            ".btn-oval",
+            {
+              scale: 1,
+              opacity: 1,
+              duration: 0.8,
+              ease: "back.out(1.7)",
+              stagger: 0.15,
+            },
+            1.2,
+          );
 
-          // Start carousel after reveal
-          gsap.delayedCall(2, startCarousel);
+          // Phase 5: Start carousel after reveal settles
+          tl.call(() => { gsap.delayedCall(2, startCarousel); });
         });
       } else {
         // Return visit: content already visible
