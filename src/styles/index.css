@@ -358,16 +358,9 @@ img {
   letter-spacing: -0.01rem;
   text-shadow:
     0 2px 4px rgba(0, 0, 0, 0.1),
-    0 4px 8px rgba(0, 0, 0, 0.15),
-    0 8px 16px rgba(0, 0, 0, 0.1);
+    0 4px 8px rgba(0, 0, 0, 0.15);
   will-change: opacity;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.5),
-    rgba(255, 255, 255, 0.3)
-  );
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.65);
   padding: 1.5rem 2rem;
   border-radius: 1rem;
   border: 1px solid rgba(255, 255, 255, 0.6);
@@ -388,40 +381,29 @@ img {
   position: absolute;
   border-radius: 0.5rem;
   border: 8px solid #ffffff;
-  box-shadow:
-    0 20px 50px -5px rgba(0, 0, 0, 0.3),
-    0 10px 25px -5px rgba(0, 0, 0, 0.15);
-  will-change: transform, opacity;
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.25);
+  will-change: transform;
   overflow: hidden;
   backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: translateZ(0);
   background-color: #ffffff;
-}
-
-.intro-card img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
+  contain: layout style paint;
 }
 
 .dark .intro-card {
   border-color: #2a2826;
   background-color: #2a2826;
-  box-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5);
 }
 
 .dark .intro-heading {
-  background: linear-gradient(
-    135deg,
-    rgba(15, 23, 42, 0.7),
-    rgba(15, 23, 42, 0.5)
-  );
+  background: rgba(15, 23, 42, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: #f1f5f9;
   text-shadow:
     0 2px 4px rgba(0, 0, 0, 0.3),
-    0 4px 8px rgba(0, 0, 0, 0.4),
-    0 8px 16px rgba(0, 0, 0, 0.3);
+    0 4px 8px rgba(0, 0, 0, 0.4);
 }
 
 /* ================================================
@@ -502,21 +484,23 @@ img {
   top: 0;
   border-radius: 0.5rem;
   border: 8px solid #ffffff;
-  box-shadow:
-    0 15px 35px -5px rgba(0, 0, 0, 0.25),
-    0 5px 15px -5px rgba(0, 0, 0, 0.1);
-  will-change: transform, opacity;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+  will-change: transform;
   overflow: hidden;
   backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: translateZ(0);
   background-color: #ffffff;
+  contain: layout style paint;
 }
 
-.scatter-card img {
+.scatter-card img,
+.intro-card img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 0.15rem;
   display: block;
+  pointer-events: none;
 }
 
 .scatter-card,
@@ -570,7 +554,7 @@ img {
 .dark .scatter-card {
   border-color: #2a2826;
   background-color: #2a2826;
-  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.45);
 }
 
 /* ================================================

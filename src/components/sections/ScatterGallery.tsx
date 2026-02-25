@@ -1,4 +1,4 @@
-import { useRef, useLayoutEffect, useState } from "react";
+import { useRef, useLayoutEffect } from "react";
 import gsap from "gsap";
 import ScrollTrigger from "gsap/ScrollTrigger";
 import { useCakeData } from "@/hooks/useCakeData";
@@ -16,7 +16,6 @@ export default function ScatterGallery() {
   const scatterHeadingRef = useRef<HTMLHeadingElement>(null);
   const cardsContainerRef = useRef<HTMLDivElement>(null);
   const scrollHintRef = useRef<HTMLDivElement>(null);
-  const [showHint, setShowHint] = useState(true);
   const { cakes } = useCakeData();
 
   useLayoutEffect(() => {
@@ -58,7 +57,12 @@ export default function ScatterGallery() {
       currentSection: -1,
       isAnimating: false,
       introComplete: false,
+      hintHidden: false,
     };
+
+    // Cache viewport dimensions — updated on resize only
+    let vw = window.innerWidth;
+    let vh = window.innerHeight;
 
     function seededRandom(seed: number) {
       const x = Math.sin(seed * 9301 + 49297) * 49297;
@@ -67,8 +71,6 @@ export default function ScatterGallery() {
 
     function getScatterPosition(index: number, setIndex: number) {
       const seed = index * 137 + setIndex * 31;
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
       const cx = vw / 2;
       const cy = vh / 2;
       const count = CONFIG.cardCount;
@@ -113,9 +115,9 @@ export default function ScatterGallery() {
     function getEdgePosition(cx: number, cy: number) {
       const distances = {
         left: cx,
-        right: window.innerWidth - cx,
+        right: vw - cx,
         top: cy,
-        bottom: window.innerHeight - cy,
+        bottom: vh - cy,
       };
       const minDistance = Math.min(...Object.values(distances));
       const offsetX = CONFIG.cardWidth / 2;
@@ -125,10 +127,10 @@ export default function ScatterGallery() {
       if (minDistance === distances.left)
         return { x: -CONFIG.cardWidth - Math.random() * 150, y: cy - offsetY + vary() };
       if (minDistance === distances.right)
-        return { x: window.innerWidth + 50 + Math.random() * 150, y: cy - offsetY + vary() };
+        return { x: vw + 50 + Math.random() * 150, y: cy - offsetY + vary() };
       if (minDistance === distances.top)
         return { x: cx - offsetX + vary(), y: -CONFIG.cardHeight - Math.random() * 150 };
-      return { x: cx - offsetX + vary(), y: window.innerHeight + 50 + Math.random() * 150 };
+      return { x: cx - offsetX + vary(), y: vh + 50 + Math.random() * 150 };
     }
 
     // ---- INTRO CARDS ----
@@ -146,14 +148,14 @@ export default function ScatterGallery() {
     for (let i = 0; i < introCardCount; i++) {
       const card = document.createElement("div");
       card.classList.add("intro-card");
-      card.style.width = CONFIG.cardWidth + "px";
-      card.style.height = CONFIG.cardHeight + "px";
+      card.style.cssText = `width:${CONFIG.cardWidth}px;height:${CONFIG.cardHeight}px;contain:layout style paint;`;
 
       const imgData = IMAGES[i % IMAGES.length];
       const img = document.createElement("img");
       img.src = imgData.src;
       img.alt = imgData.alt;
       img.loading = "eager";
+      img.decoding = "async";
       card.appendChild(img);
 
       const overlay = document.createElement("div");
@@ -172,8 +174,8 @@ export default function ScatterGallery() {
 
       cardsContainer.appendChild(card);
 
-      const cx = window.innerWidth / 2;
-      const cy = window.innerHeight / 2;
+      const cx = vw / 2;
+      const cy = vh / 2;
       const stackOffset = i * 3;
       const stackRotation = (i - introCardCount / 2) * 2;
 
@@ -184,6 +186,7 @@ export default function ScatterGallery() {
         scale: 1 - i * 0.015,
         zIndex: introCardCount - i,
         opacity: 1,
+        force3D: true,
       });
 
       const target = getScatterPosition(i, 0);
@@ -200,8 +203,8 @@ export default function ScatterGallery() {
 
     // Pre-compute spread angles
     {
-      const cx = window.innerWidth / 2;
-      const cy = window.innerHeight / 2;
+      const cx = vw / 2;
+      const cy = vh / 2;
       const centerX = cx - CONFIG.cardWidth / 2;
       const centerY = cy - CONFIG.cardHeight / 2;
 
@@ -216,6 +219,22 @@ export default function ScatterGallery() {
       });
     }
 
+    // Pre-compute per-card static values for the intro phase (avoids recomputing each frame)
+    const introStatics = introCards.map(({ index, spreadAngle }) => {
+      const cx = vw / 2;
+      const cy = vh / 2;
+      return {
+        stackX: cx - CONFIG.cardWidth / 2 + index * 3,
+        stackY: cy - CONFIG.cardHeight / 2 - index * 3,
+        stackRot: (index - introCardCount / 2) * 2,
+        stackScale: 1 - index * 0.015,
+        spreadAngle,
+        cosAngle: Math.cos(spreadAngle),
+        sinAngle: Math.sin(spreadAngle),
+        isEven: index % 2 === 0,
+      };
+    });
+
     gsap.set(galleryHeading, { opacity: 0 });
 
     // ---- SCATTER GALLERY CARDS ----
@@ -226,13 +245,13 @@ export default function ScatterGallery() {
       for (let i = 0; i < CONFIG.cardCount; i++) {
         const card = document.createElement("div");
         card.classList.add("scatter-card");
-        card.style.width = CONFIG.cardWidth + "px";
-        card.style.height = CONFIG.cardHeight + "px";
+        card.style.cssText = `width:${CONFIG.cardWidth}px;height:${CONFIG.cardHeight}px;contain:layout style paint;`;
 
         const imgData = IMAGES[(i + offset) % IMAGES.length];
         const img = document.createElement("img");
         img.src = imgData.src;
         img.loading = "lazy";
+        img.decoding = "async";
         img.alt = imgData.alt;
         card.appendChild(img);
 
@@ -271,6 +290,9 @@ export default function ScatterGallery() {
       return tl;
     }
 
+    // Track all idle floating tweens so we can kill them properly
+    const idleTweens: gsap.core.Tween[] = [];
+
     function animateCards(
       exitingCards: typeof state.activeCards,
       enteringCards: typeof state.activeCards,
@@ -296,20 +318,24 @@ export default function ScatterGallery() {
       enteringCards.forEach(({ element, centerX, centerY }) => {
         const edge = getEdgePosition(centerX, centerY);
         gsap.set(element, { x: edge.x, y: edge.y, rotation: Math.random() * 180 - 90, force3D: true });
+        const finalX = centerX - CONFIG.cardWidth / 2;
+        const finalY = centerY - CONFIG.cardHeight / 2;
         tl.to(
           element,
           {
-            x: centerX - CONFIG.cardWidth / 2,
-            y: centerY - CONFIG.cardHeight / 2,
+            x: finalX,
+            y: finalY,
             rotation: Math.random() * 40 - 20,
             duration: CONFIG.animationDuration + 0.2,
             ease: "back.out(1.2)", force3D: true,
             onComplete: () => {
-              gsap.to(element, {
-                y: "+=12", rotation: "+=2",
+              const idle = gsap.to(element, {
+                y: finalY + 12, rotation: "+=2",
                 duration: 2 + Math.random() * 2,
                 repeat: -1, yoyo: true, ease: "sine.inOut",
+                force3D: true,
               });
+              idleTweens.push(idle);
             },
           },
           CONFIG.animationOverlap,
@@ -330,6 +356,10 @@ export default function ScatterGallery() {
         activeMasterTl.kill();
         activeMasterTl = null;
       }
+
+      // Kill idle floating tweens before transition
+      idleTweens.forEach((t) => t.kill());
+      idleTweens.length = 0;
 
       const masterTl = gsap.timeline({
         onComplete: () => {
@@ -362,92 +392,95 @@ export default function ScatterGallery() {
     const totalScrollVH = introScrollVH + scatterScrollVH;
     const introRatio = introScrollVH / totalScrollVH;
 
+    // Use quickSetter for high-frequency scroll updates (much faster than gsap.set)
+    const introSetters = introCards.map(({ element }) => ({
+      x: gsap.quickSetter(element, "x", "px"),
+      y: gsap.quickSetter(element, "y", "px"),
+      rotation: gsap.quickSetter(element, "rotation", "deg"),
+      scale: gsap.quickSetter(element, "scale"),
+      opacity: gsap.quickSetter(element, "opacity"),
+    }));
+    const headingOpacitySetter = gsap.quickSetter(introHeading!, "opacity");
+    const galleryHeadingOpacitySetter = gsap.quickSetter(galleryHeading, "opacity");
+
     const st = ScrollTrigger.create({
       trigger: ".scatter-gallery",
       start: "top top",
-      end: () => `+=${window.innerHeight * totalScrollVH}`,
+      end: () => `+=${vh * totalScrollVH}`,
       pin: true,
       pinSpacing: true,
+      fastScrollEnd: true,
       onUpdate: ({ progress }) => {
-        // Fade out scroll hint as soon as user starts scrolling
-        if (scrollHintRef.current) {
-          if (progress > 0.02) {
-            if (showHint) {
-              gsap.to(scrollHintRef.current, { opacity: 0, duration: 0.4, ease: "power2.out" });
-              setShowHint(false);
-            }
-          }
+        // Fade out scroll hint (no React setState — direct DOM)
+        if (!state.hintHidden && scrollHintRef.current && progress > 0.02) {
+          state.hintHidden = true;
+          gsap.to(scrollHintRef.current, { opacity: 0, duration: 0.4, ease: "power2.out" });
         }
 
         if (progress <= introRatio) {
           // INTRO PHASE
           const introProgress = progress / introRatio;
 
-          // Heading fade
+          // Heading fade — use quickSetter
           if (introProgress < 0.35) {
-            gsap.set(introHeading, { opacity: 1 });
+            headingOpacitySetter(1);
           } else if (introProgress < 0.55) {
-            const fadeP = (introProgress - 0.35) / 0.2;
-            gsap.set(introHeading, { opacity: 1 - fadeP });
+            headingOpacitySetter(1 - (introProgress - 0.35) / 0.2);
           } else {
-            gsap.set(introHeading, { opacity: 0 });
+            headingOpacitySetter(0);
           }
 
-          // Cards animation
-          introCards.forEach(
-            ({ element, index, targetX, targetY, targetRotation, spreadAngle }) => {
-              const cx = window.innerWidth / 2;
-              const cy = window.innerHeight / 2;
-              const stackX = cx - CONFIG.cardWidth / 2 + index * 3;
-              const stackY = cy - CONFIG.cardHeight / 2 - index * 3;
-              const stackRot = (index - introCardCount / 2) * 2;
-              const stackScale = 1 - index * 0.015;
+          // Cards animation — use quickSetters and pre-computed statics
+          const cx = vw / 2;
+          const cy = vh / 2;
+          const spreadDistMax = Math.min(vw, vh) * 0.25;
 
-              if (introProgress < 0.35) {
-                const breathe = Math.sin(introProgress * Math.PI * 4) * 2;
-                gsap.set(element, {
-                  x: stackX, y: stackY + breathe,
-                  rotation: stackRot, scale: stackScale, opacity: 1,
-                });
-              } else if (introProgress < 0.7) {
-                const spreadP = (introProgress - 0.35) / 0.35;
-                const eased = 1 - Math.pow(1 - spreadP, 2);
-                const spreadDist = eased * Math.min(window.innerWidth, window.innerHeight) * 0.25;
-                const spreadX = cx + Math.cos(spreadAngle) * spreadDist - CONFIG.cardWidth / 2;
-                const spreadY = cy + Math.sin(spreadAngle) * spreadDist - CONFIG.cardHeight / 2;
-                const spreadRot = stackRot + eased * ((index % 2 === 0 ? 1 : -1) * 15);
+          for (let i = 0; i < introCards.length; i++) {
+            const card = introCards[i];
+            const s = introStatics[i];
+            const setter = introSetters[i];
 
-                gsap.set(element, {
-                  x: lerp(stackX, spreadX, eased),
-                  y: lerp(stackY, spreadY, eased),
-                  rotation: spreadRot,
-                  scale: lerp(stackScale, 1, eased), opacity: 1,
-                });
-              } else {
-                const flyP = (introProgress - 0.7) / 0.3;
-                const eased = 1 - Math.pow(1 - flyP, 3);
-                const spreadDist = Math.min(window.innerWidth, window.innerHeight) * 0.25;
-                const spreadX = cx + Math.cos(spreadAngle) * spreadDist - CONFIG.cardWidth / 2;
-                const spreadY = cy + Math.sin(spreadAngle) * spreadDist - CONFIG.cardHeight / 2;
-                const spreadRot = stackRot + (index % 2 === 0 ? 1 : -1) * 15;
+            if (introProgress < 0.35) {
+              const breathe = Math.sin(introProgress * Math.PI * 4) * 2;
+              setter.x(s.stackX);
+              setter.y(s.stackY + breathe);
+              setter.rotation(s.stackRot);
+              setter.scale(s.stackScale);
+              setter.opacity(1);
+            } else if (introProgress < 0.7) {
+              const spreadP = (introProgress - 0.35) / 0.35;
+              const eased = 1 - (1 - spreadP) * (1 - spreadP); // quadratic ease-out
+              const spreadDist = eased * spreadDistMax;
+              const spreadX = cx + s.cosAngle * spreadDist - CONFIG.cardWidth / 2;
+              const spreadY = cy + s.sinAngle * spreadDist - CONFIG.cardHeight / 2;
+              const spreadRot = s.stackRot + eased * ((s.isEven ? 1 : -1) * 15);
 
-                gsap.set(element, {
-                  x: lerp(spreadX, targetX, eased),
-                  y: lerp(spreadY, targetY, eased),
-                  rotation: lerp(spreadRot, targetRotation, eased),
-                  scale: 1, opacity: 1,
-                });
-              }
-            },
-          );
+              setter.x(lerp(s.stackX, spreadX, eased));
+              setter.y(lerp(s.stackY, spreadY, eased));
+              setter.rotation(spreadRot);
+              setter.scale(lerp(s.stackScale, 1, eased));
+              setter.opacity(1);
+            } else {
+              const flyP = (introProgress - 0.7) / 0.3;
+              const eased = 1 - (1 - flyP) * (1 - flyP) * (1 - flyP); // cubic ease-out
+              const spreadX = cx + s.cosAngle * spreadDistMax - CONFIG.cardWidth / 2;
+              const spreadY = cy + s.sinAngle * spreadDistMax - CONFIG.cardHeight / 2;
+              const spreadRot = s.stackRot + (s.isEven ? 1 : -1) * 15;
+
+              setter.x(lerp(spreadX, card.targetX, eased));
+              setter.y(lerp(spreadY, card.targetY, eased));
+              setter.rotation(lerp(spreadRot, card.targetRotation, eased));
+              setter.scale(1);
+              setter.opacity(1);
+            }
+          }
 
           // Show scatter heading near end of intro
           if (introProgress > 0.9) {
-            const headFade = (introProgress - 0.9) / 0.1;
             galleryHeading.textContent = HEADINGS[0];
-            gsap.set(galleryHeading, { opacity: headFade });
+            galleryHeadingOpacitySetter((introProgress - 0.9) / 0.1);
           } else {
-            gsap.set(galleryHeading, { opacity: 0 });
+            galleryHeadingOpacitySetter(0);
           }
 
           // Reset scatter state when scrolling back into intro
@@ -457,6 +490,10 @@ export default function ScatterGallery() {
             if (activeMasterTl) { activeMasterTl.kill(); activeMasterTl = null; }
             state.isAnimating = false;
 
+            // Kill idle tweens
+            idleTweens.forEach((t) => t.kill());
+            idleTweens.length = 0;
+
             gallery.querySelectorAll(".scatter-card").forEach((el) => {
               gsap.killTweensOf(el);
               el.remove();
@@ -465,7 +502,7 @@ export default function ScatterGallery() {
             introCards.forEach(({ element }) => {
               gsap.killTweensOf(element);
               if (!element.parentNode) cardsContainer.appendChild(element);
-              gsap.set(element, { display: "block", opacity: 1 });
+              gsap.set(element, { display: "block", opacity: 1, force3D: true });
             });
           }
         } else {
@@ -474,9 +511,9 @@ export default function ScatterGallery() {
 
           if (!state.introComplete) {
             state.introComplete = true;
-            gsap.set(introHeading, { opacity: 0 });
+            headingOpacitySetter(0);
             galleryHeading.textContent = HEADINGS[0];
-            gsap.set(galleryHeading, { opacity: 1 });
+            galleryHeadingOpacitySetter(1);
             state.activeCards = introCards.map(({ element, targetX, targetY }) => ({
               element,
               centerX: targetX + CONFIG.cardWidth / 2,
@@ -497,6 +534,10 @@ export default function ScatterGallery() {
     const onResize = () => {
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(() => {
+        // Update cached viewport dimensions
+        vw = window.innerWidth;
+        vh = window.innerHeight;
+
         const responsive = getResponsiveConfig();
         CONFIG.cardCount = responsive.cardCount;
         CONFIG.cardWidth = responsive.cardWidth;
@@ -511,9 +552,17 @@ export default function ScatterGallery() {
           card.targetRotation = pos.rotation;
         });
 
+        // Recompute intro statics on resize
+        const cx = vw / 2;
+        const cy = vh / 2;
+        introCards.forEach(({ index, spreadAngle }, i) => {
+          introStatics[i].stackX = cx - CONFIG.cardWidth / 2 + index * 3;
+          introStatics[i].stackY = cy - CONFIG.cardHeight / 2 - index * 3;
+          introStatics[i].cosAngle = Math.cos(spreadAngle);
+          introStatics[i].sinAngle = Math.sin(spreadAngle);
+        });
+
         if (!state.introComplete) {
-          const cx = window.innerWidth / 2;
-          const cy = window.innerHeight / 2;
           introCards.forEach(({ element, index: idx }) => {
             const stackOffset = idx * 3;
             const stackRotation = (idx - introCards.length / 2) * 2;
@@ -522,6 +571,7 @@ export default function ScatterGallery() {
               y: cy - CONFIG.cardHeight / 2 - stackOffset,
               rotation: stackRotation,
               scale: 1 - idx * 0.015,
+              force3D: true,
             });
           });
         } else {
@@ -535,7 +585,7 @@ export default function ScatterGallery() {
               centerY: targetY + CONFIG.cardHeight / 2,
             }));
             introCards.forEach(({ element, targetX, targetY, targetRotation }) => {
-              gsap.set(element, { x: targetX, y: targetY, rotation: targetRotation });
+              gsap.set(element, { x: targetX, y: targetY, rotation: targetRotation, force3D: true });
             });
           } else {
             state.activeCards.forEach(({ element }) => element.remove());
@@ -552,6 +602,8 @@ export default function ScatterGallery() {
       clearTimeout(resizeTimer);
       st.kill();
       if (activeMasterTl) activeMasterTl.kill();
+      idleTweens.forEach((t) => t.kill());
+      idleTweens.length = 0;
       // Clean up imperatively created DOM
       gallery.querySelectorAll(".scatter-card, .intro-card").forEach((el) => {
         gsap.killTweensOf(el);
