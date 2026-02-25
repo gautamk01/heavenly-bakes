@@ -84,8 +84,8 @@ export default function ScatterGallery() {
       const padX = CONFIG.cardWidth / 2 + 20;
       const padY = CONFIG.cardHeight / 2 + 20;
       const isSmall = vw <= 768;
-      const innerRX = isSmall ? 0.46 : 0.42;
-      const innerRY = isSmall ? 0.44 : 0.42;
+      const innerRX = isSmall ? 0.48 : 0.42;
+      const innerRY = isSmall ? 0.46 : 0.42;
       const outerRX = isSmall ? 0.5 : 0.48;
       const outerRY = isSmall ? 0.5 : 0.48;
       const innerRadiusX = Math.min((vw - padX * 2) * innerRX, vw * innerRX);
@@ -250,7 +250,7 @@ export default function ScatterGallery() {
         const imgData = IMAGES[(i + offset) % IMAGES.length];
         const img = document.createElement("img");
         img.src = imgData.src;
-        img.loading = "lazy";
+        img.loading = "eager";
         img.decoding = "async";
         img.alt = imgData.alt;
         card.appendChild(img);
@@ -387,8 +387,10 @@ export default function ScatterGallery() {
     }
 
     // ---- UNIFIED SCROLL TRIGGER ----
-    const introScrollVH = 3;
-    const scatterScrollVH = 5;
+    const isMobile = vw <= 480;
+    const isTablet = vw <= 768;
+    const introScrollVH = isMobile ? 2 : 3;
+    const scatterScrollVH = isMobile ? 3 : isTablet ? 4 : 5;
     const totalScrollVH = introScrollVH + scatterScrollVH;
     const introRatio = introScrollVH / totalScrollVH;
 
@@ -433,7 +435,7 @@ export default function ScatterGallery() {
           // Cards animation — use quickSetters and pre-computed statics
           const cx = vw / 2;
           const cy = vh / 2;
-          const spreadDistMax = Math.min(vw, vh) * 0.25;
+          const spreadDistMax = Math.min(vw, vh) * (vw <= 480 ? 0.38 : vw <= 768 ? 0.32 : 0.25);
 
           for (let i = 0; i < introCards.length; i++) {
             const card = introCards[i];

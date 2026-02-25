@@ -21,6 +21,8 @@ export function LenisProvider({ children }: { children: ReactNode }) {
       lerp: 0.1,
       smoothWheel: true,
       syncTouch: true,
+      touchMultiplier: 1.5,
+      syncTouchLerp: 0.06,
     });
 
     instance.on("scroll", ScrollTrigger.update);

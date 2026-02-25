@@ -3,6 +3,7 @@ import gsap from "gsap";
 import SplitText from "gsap/SplitText";
 import { usePreloader } from "@/context/PreloaderContext";
 
+
 const PRELOADER_SVG_ICONS = [
   `<svg viewBox="0 0 40 48" fill="none"><path d="M12 22C9 22 7 19 9 16C11 13 16 11 20 11C24 11 29 13 31 16C33 19 31 22 28 22Z M11 24L29 24C29 24 30 25 30 26L27 42C27 43 26 44 25 44L15 44C14 44 13 43 13 42L10 26C10 25 11 24 11 24Z M20 8C20 6 20 4 20 3" stroke="#D97762" stroke-width="1.2" stroke-linecap="round"/></svg>`,
   `<svg viewBox="0 0 40 44" fill="none"><path d="M6 28L34 28L34 40C34 42 32 44 30 44L10 44C8 44 6 42 6 40Z M6 28C6 24 10 20 20 20C30 20 34 24 34 28 M14 20L14 14M20 20L20 12M26 20L26 14 M14 14C14 12 14 10 14 10C15 8 13 8 14 10M20 12C20 10 20 8 20 8C21 6 19 6 20 8M26 14C26 12 26 10 26 10C27 8 25 8 26 10 M6 34L34 34" stroke="#D97762" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
