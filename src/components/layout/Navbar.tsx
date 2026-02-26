@@ -67,8 +67,8 @@ export default function Navbar() {
 
         {/* Right links + actions */}
         <div className="flex items-center gap-5 md:gap-6 text-[0.8rem] uppercase tracking-widest font-semibold">
-          <a className="hidden md:block nav-link" href="#custom">
-            Custom
+          <a className="hidden md:block nav-link" href="#contact">
+            Contact
           </a>
           <a
             className="hidden lg:flex bg-primary text-white px-6 py-2.5 rounded-full hover:bg-primary-dark transition-all hover:shadow-lg hover:-translate-y-0.5 cursor-pointer items-center justify-center"
@@ -106,7 +106,7 @@ export default function Navbar() {
       </nav>
 
       {/* Nav spacer */}
-      <div className="h-16 md:h-20" />
+      <div className="h-12 md:h-20" />
 
       <MobileNav open={mobileOpen} onClose={() => setMobileOpen(false)} />
     </>

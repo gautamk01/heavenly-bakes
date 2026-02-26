@@ -12,6 +12,53 @@ const HEADINGS = [
   "These are the moments we bake for",
 ];
 
+// --- Shared helper: create a card DOM element with LQIP ---
+function createCardElement(
+  imgData: { src: string; alt: string; title: string; description: string },
+  width: number,
+  height: number,
+  className: string,
+) {
+  const card = document.createElement("div");
+  card.classList.add(className);
+  card.style.cssText = `width:${width}px;height:${height}px;`;
+
+  const fullSrc = optimizedUrl(imgData.src);
+  const img = document.createElement("img");
+  img.alt = imgData.alt;
+  img.decoding = "async";
+
+  if (isPreloaded(fullSrc)) {
+    img.src = fullSrc;
+  } else {
+    img.src = lqipUrl(imgData.src);
+    img.classList.add("lqip-blur");
+    preloadImage(fullSrc).then(() => {
+      img.src = fullSrc;
+      requestAnimationFrame(() => {
+        img.classList.remove("lqip-blur");
+      });
+    });
+  }
+  card.appendChild(img);
+
+  const overlay = document.createElement("div");
+  overlay.classList.add("card-overlay");
+  const overlayTitle = document.createElement("h4");
+  overlayTitle.classList.add("card-overlay-title");
+  overlayTitle.textContent = imgData.title || imgData.alt;
+  overlay.appendChild(overlayTitle);
+  if (imgData.description) {
+    const overlayDesc = document.createElement("p");
+    overlayDesc.classList.add("card-overlay-desc");
+    overlayDesc.textContent = imgData.description;
+    overlay.appendChild(overlayDesc);
+  }
+  card.appendChild(overlay);
+
+  return card;
+}
+
 export default function ScatterGallery() {
   const galleryRef = useRef<HTMLElement>(null);
   const introHeadingRef = useRef<HTMLHeadingElement>(null);
@@ -35,10 +82,252 @@ export default function ScatterGallery() {
       description: c.description,
     }));
 
+    let vw = window.innerWidth;
+    let vh = window.innerHeight;
+    const isMobileLayout = vw <= 768;
+
+    // ============================================================
+    // MOBILE: Stacked Card-Deck Reveal
+    // ============================================================
+    if (isMobileLayout) {
+      const CARD_W = vw <= 480 ? 220 : 240;
+      const CARD_H = vw <= 480 ? 290 : 310;
+      const CARDS_PER_SET = 5;
+      const TOTAL_SECTIONS = HEADINGS.length;
+      const SCROLL_VH = 5;
+
+      // Cards positioned in upper ~40% of viewport
+      const stackCenterX = vw / 2;
+      const stackCenterY = vh * 0.35;
+
+      const mobileState = {
+        currentSection: 0,
+        revealedInSection: 0,
+        hintHidden: false,
+      };
+
+      let currentCards: HTMLElement[] = [];
+
+      function getStackPos(stackDepth: number) {
+        return {
+          x: stackCenterX - CARD_W / 2 + stackDepth * 2,
+          y: stackCenterY - CARD_H / 2 - stackDepth * 4,
+          rotation: (stackDepth - 2) * 1.8,
+          scale: 1 - stackDepth * 0.025,
+        };
+      }
+
+      function createMobileStack(setIndex: number) {
+        const offset =
+          (setIndex * Math.floor(IMAGES.length / TOTAL_SECTIONS)) %
+          IMAGES.length;
+        const cards: HTMLElement[] = [];
+
+        // Build back-to-front so DOM order = paint order
+        // cards[0] = front (top of stack), cards[last] = back (bottom)
+        for (let i = 0; i < CARDS_PER_SET; i++) {
+          const imgData = IMAGES[(i + offset) % IMAGES.length];
+          const card = createCardElement(imgData, CARD_W, CARD_H, "intro-card");
+          cardsContainer!.appendChild(card);
+
+          // i=0 is front card (stackDepth=0, highest zIndex)
+          // i=last is back card (stackDepth=max, lowest zIndex)
+          const stackDepth = i;
+          const pos = getStackPos(stackDepth);
+          gsap.set(card, {
+            x: pos.x,
+            y: pos.y,
+            rotation: pos.rotation,
+            scale: pos.scale,
+            zIndex: CARDS_PER_SET - i,
+            opacity: 1,
+            force3D: true,
+          });
+          cards.push(card);
+        }
+        return cards;
+      }
+
+      // Set up initial state
+      currentCards = createMobileStack(0);
+      galleryHeading.textContent = HEADINGS[0];
+      gsap.set(galleryHeading, { opacity: 1 });
+      if (introHeading) gsap.set(introHeading, { opacity: 0 });
+
+      const st = ScrollTrigger.create({
+        trigger: ".scatter-gallery",
+        start: "top top",
+        end: () => `+=${vh * SCROLL_VH}`,
+        pin: true,
+        pinSpacing: true,
+        fastScrollEnd: true,
+        onUpdate: ({ progress }) => {
+          // Hide scroll hint
+          if (
+            !mobileState.hintHidden &&
+            scrollHintRef.current &&
+            progress > 0.02
+          ) {
+            mobileState.hintHidden = true;
+            gsap.to(scrollHintRef.current, {
+              opacity: 0,
+              duration: 0.4,
+              ease: "power2.out",
+            });
+          }
+
+          // Determine which section we're in
+          const sectionProgress = progress * TOTAL_SECTIONS;
+          const sectionIndex = Math.min(
+            Math.floor(sectionProgress),
+            TOTAL_SECTIONS - 1,
+          );
+          const withinSection = sectionProgress - sectionIndex;
+
+          // Section transition: swap card set
+          if (sectionIndex !== mobileState.currentSection) {
+            const oldCards = currentCards;
+
+            // Slide old stack out to the left
+            oldCards.forEach((el, i) => {
+              gsap.to(el, {
+                x: -CARD_W - 40,
+                rotation: -15,
+                opacity: 0,
+                duration: 0.35,
+                delay: i * 0.02,
+                ease: "power2.in",
+                force3D: true,
+                onComplete: () => {
+                  gsap.killTweensOf(el);
+                  el.remove();
+                },
+              });
+            });
+
+            // Create new stack, slide in from right
+            currentCards = createMobileStack(sectionIndex);
+            currentCards.forEach((card, i) => {
+              const stackDepth = i;
+              const finalPos = getStackPos(stackDepth);
+              gsap.set(card, {
+                x: vw + 40,
+                rotation: 15,
+                opacity: 0,
+              });
+              gsap.to(card, {
+                x: finalPos.x,
+                rotation: finalPos.rotation,
+                opacity: 1,
+                duration: 0.4,
+                delay: 0.15 + i * 0.03,
+                ease: "back.out(1.2)",
+                force3D: true,
+              });
+            });
+
+            // Heading transition
+            gsap.to(galleryHeading, {
+              opacity: 0,
+              y: 10,
+              duration: 0.2,
+              ease: "power2.in",
+              onComplete: () => {
+                galleryHeading.textContent = HEADINGS[sectionIndex];
+                gsap.to(galleryHeading, {
+                  opacity: 1,
+                  y: 0,
+                  duration: 0.3,
+                  ease: "power2.out",
+                });
+              },
+            });
+
+            mobileState.currentSection = sectionIndex;
+            mobileState.revealedInSection = 0;
+          }
+
+          // Within-section card peel: front card (index 0) peels off first
+          // cardsToReveal = how many cards have been peeled from the front
+          const cardsToReveal = Math.floor(
+            withinSection * (CARDS_PER_SET + 0.5),
+          );
+
+          if (cardsToReveal > mobileState.revealedInSection) {
+            // Peel front cards off — they fly up and away
+            for (
+              let i = mobileState.revealedInSection;
+              i < Math.min(cardsToReveal, currentCards.length - 1);
+              i++
+            ) {
+              const card = currentCards[i];
+              gsap.to(card, {
+                y: stackCenterY - CARD_H / 2 - 120,
+                opacity: 0,
+                scale: 1.05,
+                rotation: (i % 2 === 0 ? 1 : -1) * 12,
+                duration: 0.5,
+                ease: "power3.out",
+                force3D: true,
+              });
+            }
+            mobileState.revealedInSection = cardsToReveal;
+          } else if (cardsToReveal < mobileState.revealedInSection) {
+            // Scrolling back — restore peeled front cards
+            for (
+              let i = cardsToReveal;
+              i < mobileState.revealedInSection;
+              i++
+            ) {
+              const card = currentCards[i];
+              const stackDepth = i; // i=0 is front (stackDepth=0)
+              const pos = getStackPos(stackDepth);
+              gsap.to(card, {
+                x: pos.x,
+                y: pos.y,
+                opacity: 1,
+                scale: pos.scale,
+                rotation: pos.rotation,
+                duration: 0.35,
+                ease: "power2.out",
+                force3D: true,
+              });
+            }
+            mobileState.revealedInSection = cardsToReveal;
+          }
+        },
+      });
+
+      // Resize handler
+      let resizeTimer: ReturnType<typeof setTimeout>;
+      const onResize = () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+          vw = window.innerWidth;
+          vh = window.innerHeight;
+          ScrollTrigger.refresh();
+        }, 250);
+      };
+      window.addEventListener("resize", onResize);
+
+      return () => {
+        window.removeEventListener("resize", onResize);
+        clearTimeout(resizeTimer);
+        st.kill();
+        gallery
+          .querySelectorAll(".scatter-card, .intro-card")
+          .forEach((el) => {
+            gsap.killTweensOf(el);
+            el.remove();
+          });
+      };
+    }
+
+    // ============================================================
+    // DESKTOP: Original Scatter Gallery (unchanged)
+    // ============================================================
     function getResponsiveConfig() {
       const w = window.innerWidth;
-      if (w <= 480) return { cardCount: 4, cardWidth: 100, cardHeight: 130 };
-      if (w <= 768) return { cardCount: 6, cardWidth: 140, cardHeight: 180 };
       if (w <= 1024) return { cardCount: 10, cardWidth: 220, cardHeight: 280 };
       return { cardCount: 14, cardWidth: 260, cardHeight: 330 };
     }
@@ -62,10 +351,6 @@ export default function ScatterGallery() {
       hintHidden: false,
     };
 
-    // Cache viewport dimensions — updated on resize only
-    let vw = window.innerWidth;
-    let vh = window.innerHeight;
-
     function seededRandom(seed: number) {
       const x = Math.sin(seed * 9301 + 49297) * 49297;
       return x - Math.floor(x);
@@ -85,11 +370,10 @@ export default function ScatterGallery() {
 
       const padX = CONFIG.cardWidth / 2 + 20;
       const padY = CONFIG.cardHeight / 2 + 20;
-      const isSmall = vw <= 768;
-      const innerRX = isSmall ? 0.48 : 0.42;
-      const innerRY = isSmall ? 0.46 : 0.42;
-      const outerRX = isSmall ? 0.5 : 0.48;
-      const outerRY = isSmall ? 0.5 : 0.48;
+      const innerRX = 0.42;
+      const innerRY = 0.42;
+      const outerRX = 0.48;
+      const outerRY = 0.48;
       const innerRadiusX = Math.min((vw - padX * 2) * innerRX, vw * innerRX);
       const innerRadiusY = Math.min((vh - padY * 2) * innerRY, vh * innerRY);
       const outerRadiusX = Math.min((vw - padX * 2) * outerRX, vw * outerRX);
@@ -98,14 +382,16 @@ export default function ScatterGallery() {
       const radiusX = isOuter ? outerRadiusX : innerRadiusX;
       const radiusY = isOuter ? outerRadiusY : innerRadiusY;
 
-      const angleOffset = setIndex * 0.7 + (isOuter ? Math.PI / ringTotal : 0);
+      const angleOffset =
+        setIndex * 0.7 + (isOuter ? Math.PI / ringTotal : 0);
       const angle = angleOffset + (ringIndex / ringTotal) * Math.PI * 2;
 
       const jitterX = (seededRandom(seed + 300) - 0.5) * 40;
       const jitterY = (seededRandom(seed + 400) - 0.5) * 40;
 
       let x = cx + Math.cos(angle) * radiusX - CONFIG.cardWidth / 2 + jitterX;
-      let y = cy + Math.sin(angle) * radiusY - CONFIG.cardHeight / 2 + jitterY;
+      let y =
+        cy + Math.sin(angle) * radiusY - CONFIG.cardHeight / 2 + jitterY;
 
       x = Math.max(10, Math.min(x, vw - CONFIG.cardWidth - 10));
       y = Math.max(10, Math.min(y, vh - CONFIG.cardHeight - 10));
@@ -154,46 +440,13 @@ export default function ScatterGallery() {
     const introCardCount = Math.min(CONFIG.cardCount, IMAGES.length);
 
     for (let i = 0; i < introCardCount; i++) {
-      const card = document.createElement("div");
-      card.classList.add("intro-card");
-      card.style.cssText = `width:${CONFIG.cardWidth}px;height:${CONFIG.cardHeight}px;`;
-
       const imgData = IMAGES[i % IMAGES.length];
-      const fullSrc = optimizedUrl(imgData.src);
-      const img = document.createElement("img");
-      img.alt = imgData.alt;
-      img.decoding = "async";
-
-      if (isPreloaded(fullSrc)) {
-        // Already cached — use full image directly, no blur
-        img.src = fullSrc;
-      } else {
-        // Show LQIP with blur, then transition
-        img.src = lqipUrl(imgData.src);
-        img.classList.add("lqip-blur");
-        preloadImage(fullSrc).then(() => {
-          img.src = fullSrc;
-          requestAnimationFrame(() => {
-            img.classList.remove("lqip-blur");
-          });
-        });
-      }
-      card.appendChild(img);
-
-      const overlay = document.createElement("div");
-      overlay.classList.add("card-overlay");
-      const overlayTitle = document.createElement("h4");
-      overlayTitle.classList.add("card-overlay-title");
-      overlayTitle.textContent = imgData.title || imgData.alt;
-      overlay.appendChild(overlayTitle);
-      if (imgData.description) {
-        const overlayDesc = document.createElement("p");
-        overlayDesc.classList.add("card-overlay-desc");
-        overlayDesc.textContent = imgData.description;
-        overlay.appendChild(overlayDesc);
-      }
-      card.appendChild(overlay);
-
+      const card = createCardElement(
+        imgData,
+        CONFIG.cardWidth,
+        CONFIG.cardHeight,
+        "intro-card",
+      );
       cardsContainer.appendChild(card);
 
       const cx = vw / 2;
@@ -232,7 +485,10 @@ export default function ScatterGallery() {
 
       const withAngles = introCards.map((card) => ({
         card,
-        targetAngle: Math.atan2(card.targetY - centerY, card.targetX - centerX),
+        targetAngle: Math.atan2(
+          card.targetY - centerY,
+          card.targetX - centerX,
+        ),
       }));
       withAngles.sort((a, b) => a.targetAngle - b.targetAngle);
       withAngles.forEach((item, sortedIndex) => {
@@ -241,7 +497,7 @@ export default function ScatterGallery() {
       });
     }
 
-    // Pre-compute per-card static values for the intro phase (avoids recomputing each frame)
+    // Pre-compute per-card static values for the intro phase
     const introStatics = introCards.map(({ index, spreadAngle }) => {
       const cx = vw / 2;
       const cy = vh / 2;
@@ -266,46 +522,17 @@ export default function ScatterGallery() {
         centerX: number;
         centerY: number;
       }> = [];
-      const offset = (setIndex * Math.floor(IMAGES.length / 4)) % IMAGES.length;
+      const offset =
+        (setIndex * Math.floor(IMAGES.length / 4)) % IMAGES.length;
 
       for (let i = 0; i < CONFIG.cardCount; i++) {
-        const card = document.createElement("div");
-        card.classList.add("scatter-card");
-        card.style.cssText = `width:${CONFIG.cardWidth}px;height:${CONFIG.cardHeight}px;`;
-
         const imgData = IMAGES[(i + offset) % IMAGES.length];
-        const fullSrc = optimizedUrl(imgData.src);
-        const img = document.createElement("img");
-        img.alt = imgData.alt;
-        img.decoding = "async";
-
-        if (isPreloaded(fullSrc)) {
-          img.src = fullSrc;
-        } else {
-          img.src = lqipUrl(imgData.src);
-          img.classList.add("lqip-blur");
-          preloadImage(fullSrc).then(() => {
-            img.src = fullSrc;
-            requestAnimationFrame(() => {
-              img.classList.remove("lqip-blur");
-            });
-          });
-        }
-        card.appendChild(img);
-
-        const overlay = document.createElement("div");
-        overlay.classList.add("card-overlay");
-        const overlayTitle = document.createElement("h4");
-        overlayTitle.classList.add("card-overlay-title");
-        overlayTitle.textContent = imgData.title || imgData.alt;
-        overlay.appendChild(overlayTitle);
-        if (imgData.description) {
-          const overlayDesc = document.createElement("p");
-          overlayDesc.classList.add("card-overlay-desc");
-          overlayDesc.textContent = imgData.description;
-          overlay.appendChild(overlayDesc);
-        }
-        card.appendChild(overlay);
+        const card = createCardElement(
+          imgData,
+          CONFIG.cardWidth,
+          CONFIG.cardHeight,
+          "scatter-card",
+        );
 
         const pos = getScatterPosition(i, setIndex);
         gsap.set(card, {
@@ -451,14 +678,12 @@ export default function ScatterGallery() {
     }
 
     // ---- UNIFIED SCROLL TRIGGER ----
-    const isMobile = vw <= 480;
-    const isTablet = vw <= 768;
-    const introScrollVH = isMobile ? 2 : 3;
-    const scatterScrollVH = isMobile ? 3 : isTablet ? 4 : 5;
+    const introScrollVH = 3;
+    const scatterScrollVH = 5;
     const totalScrollVH = introScrollVH + scatterScrollVH;
     const introRatio = introScrollVH / totalScrollVH;
 
-    // Use quickSetter for high-frequency scroll updates (much faster than gsap.set)
+    // Use quickSetter for high-frequency scroll updates
     const introSetters = introCards.map(({ element }) => ({
       x: gsap.quickSetter(element, "x", "px"),
       y: gsap.quickSetter(element, "y", "px"),
@@ -480,7 +705,7 @@ export default function ScatterGallery() {
       pinSpacing: true,
       fastScrollEnd: true,
       onUpdate: ({ progress }) => {
-        // Fade out scroll hint (no React setState — direct DOM)
+        // Fade out scroll hint
         if (!state.hintHidden && scrollHintRef.current && progress > 0.02) {
           state.hintHidden = true;
           gsap.to(scrollHintRef.current, {
@@ -494,7 +719,7 @@ export default function ScatterGallery() {
           // INTRO PHASE
           const introProgress = progress / introRatio;
 
-          // Heading fade — use quickSetter
+          // Heading fade
           if (introProgress < 0.35) {
             headingOpacitySetter(1);
           } else if (introProgress < 0.55) {
@@ -503,11 +728,10 @@ export default function ScatterGallery() {
             headingOpacitySetter(0);
           }
 
-          // Cards animation — use quickSetters and pre-computed statics
+          // Cards animation
           const cx = vw / 2;
           const cy = vh / 2;
-          const spreadDistMax =
-            Math.min(vw, vh) * (vw <= 480 ? 0.38 : vw <= 768 ? 0.32 : 0.25);
+          const spreadDistMax = Math.min(vw, vh) * 0.25;
 
           for (let i = 0; i < introCards.length; i++) {
             const card = introCards[i];
@@ -523,13 +747,14 @@ export default function ScatterGallery() {
               setter.opacity(1);
             } else if (introProgress < 0.7) {
               const spreadP = (introProgress - 0.35) / 0.35;
-              const eased = 1 - (1 - spreadP) * (1 - spreadP); // quadratic ease-out
+              const eased = 1 - (1 - spreadP) * (1 - spreadP);
               const spreadDist = eased * spreadDistMax;
               const spreadX =
                 cx + s.cosAngle * spreadDist - CONFIG.cardWidth / 2;
               const spreadY =
                 cy + s.sinAngle * spreadDist - CONFIG.cardHeight / 2;
-              const spreadRot = s.stackRot + eased * ((s.isEven ? 1 : -1) * 15);
+              const spreadRot =
+                s.stackRot + eased * ((s.isEven ? 1 : -1) * 15);
 
               setter.x(lerp(s.stackX, spreadX, eased));
               setter.y(lerp(s.stackY, spreadY, eased));
@@ -538,7 +763,7 @@ export default function ScatterGallery() {
               setter.opacity(1);
             } else {
               const flyP = (introProgress - 0.7) / 0.3;
-              const eased = 1 - (1 - flyP) * (1 - flyP) * (1 - flyP); // cubic ease-out
+              const eased = 1 - (1 - flyP) * (1 - flyP) * (1 - flyP);
               const spreadX =
                 cx + s.cosAngle * spreadDistMax - CONFIG.cardWidth / 2;
               const spreadY =
@@ -571,7 +796,6 @@ export default function ScatterGallery() {
             }
             state.isAnimating = false;
 
-            // Kill idle tweens
             idleTweens.forEach((t) => t.kill());
             idleTweens.length = 0;
 
@@ -592,7 +816,8 @@ export default function ScatterGallery() {
           }
         } else {
           // SCATTER GALLERY PHASE
-          const scatterProgress = (progress - introRatio) / (1 - introRatio);
+          const scatterProgress =
+            (progress - introRatio) / (1 - introRatio);
 
           if (!state.introComplete) {
             state.introComplete = true;
@@ -621,7 +846,6 @@ export default function ScatterGallery() {
     const onResize = () => {
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(() => {
-        // Update cached viewport dimensions
         vw = window.innerWidth;
         vh = window.innerHeight;
 
@@ -639,7 +863,6 @@ export default function ScatterGallery() {
           card.targetRotation = pos.rotation;
         });
 
-        // Recompute intro statics on resize
         const cx = vw / 2;
         const cy = vh / 2;
         introCards.forEach(({ index, spreadAngle }, i) => {
@@ -700,7 +923,6 @@ export default function ScatterGallery() {
       if (activeMasterTl) activeMasterTl.kill();
       idleTweens.forEach((t) => t.kill());
       idleTweens.length = 0;
-      // Clean up imperatively created DOM
       gallery.querySelectorAll(".scatter-card, .intro-card").forEach((el) => {
         gsap.killTweensOf(el);
         el.remove();

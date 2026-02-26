@@ -344,128 +344,134 @@ export default function Hero({ onBookClick }: { onBookClick?: () => void }) {
       ref={sectionRef}
       className="relative w-full bg-background-light dark:bg-background-dark"
     >
-      <main className="flex-grow relative w-full max-w-7xl mx-auto px-4 py-12 md:px-8 lg:px-12 md:py-20 lg:py-28 min-h-[85vh] md:min-h-[90vh] flex flex-col md:flex-row items-center gap-8 md:gap-12 lg:gap-20 overflow-hidden">
+      <main className="flex-grow relative w-full max-w-7xl mx-auto px-4 pt-6 pb-12 md:px-8 lg:px-12 md:py-20 lg:py-28 min-h-[85vh] md:min-h-[90vh] flex flex-col md:flex-row items-center gap-8 md:gap-12 lg:gap-20 overflow-hidden">
       {/* SVG Line-Art Decorations */}
       <div className="absolute inset-0 w-full h-full pointer-events-none z-[1] overflow-hidden">
-        {/* Cupcake outline - top-left */}
+        {/* Cupcake - top-left */}
         <svg
-          className="hero-line-art absolute top-[8%] left-[3%] w-[80px] md:w-[120px]"
-          viewBox="0 0 100 120"
+          className="hero-line-art absolute top-[6%] left-[2%] w-[70px] md:w-[110px]"
+          viewBox="0 0 100 130"
           fill="none"
         >
           <path
             className="hero-line-path"
-            d="M50 8 C50 8 42 5 40 12 C38 19 44 22 50 22 C56 22 62 19 60 12 C58 5 50 8 50 8 Z M35 28 C28 28 22 34 25 42 C28 50 35 52 50 52 C65 52 72 50 75 42 C78 34 72 28 65 28 C60 28 55 30 50 30 C45 30 40 28 35 28 Z M28 56 L72 56 C72 56 74 58 74 60 L68 100 C68 104 64 108 60 108 L40 108 C36 108 32 104 32 100 L26 60 C26 58 28 56 28 56 Z M40 72 L60 72 M38 88 L62 88"
+            d="M50 10 C50 4 46 2 43 5 C40 8 42 14 46 16 C48 17 50 16 50 14 M30 30 C22 30 16 38 18 48 C20 56 30 62 50 62 C70 62 80 56 82 48 C84 38 78 30 70 30 C64 30 58 34 50 34 C42 34 36 30 30 30 Z M32 66 C32 66 34 68 34 70 L38 104 C38 108 42 112 46 112 L54 112 C58 112 62 108 62 104 L66 70 C66 68 68 66 68 66 M32 66 L68 66 M36 82 L64 82"
             stroke="#D97762"
             strokeWidth="1.5"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
         </svg>
+
         {/* Whisk - top-right */}
         <svg
-          className="hero-line-art absolute top-[6%] right-[3%] w-[40px] md:w-[65px] rotate-[25deg]"
-          viewBox="0 0 50 150"
+          className="hero-line-art absolute top-[5%] right-[3%] w-[36px] md:w-[56px] rotate-[20deg]"
+          viewBox="0 0 40 140"
           fill="none"
         >
           <path
             className="hero-line-path"
-            d="M25 0 L25 55 M18 8 L32 8 M20 3 L30 3 M25 55 C12 62 5 80 8 100 C11 120 20 135 25 145 M25 55 C38 62 45 80 42 100 C39 120 30 135 25 145 M25 55 C18 65 15 82 18 100 C21 115 23 130 25 145 M25 55 C32 65 35 82 32 100 C29 115 27 130 25 145"
+            d="M17 2 L23 2 M16 6 L24 6 M20 6 L20 50 M20 50 Q8 65 6 85 Q4 108 20 132 M20 50 Q32 65 34 85 Q36 108 20 132 M20 50 Q13 68 12 88 Q11 110 20 132 M20 50 Q27 68 28 88 Q29 110 20 132"
             stroke="#D97762"
             strokeWidth="1.2"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
         </svg>
-        {/* Decorative swirl - bottom-left (desktop) */}
-        <svg
-          className="hero-line-art absolute bottom-[10%] left-[5%] w-[60px] md:w-[100px] hidden md:block"
-          viewBox="0 0 100 60"
-          fill="none"
-        >
-          <path
-            className="hero-line-path"
-            d="M5 30 C5 30 15 10 30 10 C45 10 50 25 50 30 C50 35 45 45 35 45 C25 45 20 35 25 30 C30 25 40 25 45 30 C55 40 70 45 85 35 C95 28 95 15 85 10 C75 5 65 15 70 25 C75 35 90 40 95 30"
-            stroke="#D97762"
-            strokeWidth="1.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+
         {/* Cake slice - mid-right */}
         <svg
-          className="hero-line-art bakery-doodle absolute top-[40%] right-[2%] w-[70px] md:w-[110px]"
-          viewBox="0 0 80 90"
+          className="hero-line-art absolute top-[42%] right-[1%] w-[60px] md:w-[100px]"
+          viewBox="0 0 90 100"
           fill="none"
         >
           <path
             className="hero-line-path"
-            d="M10 75 L40 10 L70 75 Z M10 75 L70 75 M15 65 L65 65 M20 55 L60 55 M25 40 C30 35 35 37 40 35 C45 37 50 35 55 40 M38 10 C38 5 42 5 42 10"
+            d="M45 12 Q42 6 45 4 Q48 6 45 12 M20 82 L45 18 L70 82 Q58 88 45 88 Q32 88 20 82 Z M24 72 L66 72 M28 62 L62 62 M32 48 Q38 44 45 46 Q52 44 58 48"
             stroke="#D97762"
             strokeWidth="1.3"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
         </svg>
+
+        {/* Rolling pin - mid-left */}
+        <svg
+          className="hero-line-art absolute top-[52%] left-[1%] w-[36px] md:w-[55px] rotate-[-25deg]"
+          viewBox="0 0 40 130"
+          fill="none"
+        >
+          <path
+            className="hero-line-path"
+            d="M20 4 L20 16 M15 4 Q20 0 25 4 M14 16 Q10 16 10 22 L10 100 Q10 106 14 106 L26 106 Q30 106 30 100 L30 22 Q30 16 26 16 Z M20 106 L20 118 M15 118 Q20 122 25 118"
+            stroke="#D97762"
+            strokeWidth="1.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+
+        {/* Decorative flour swirl - bottom-left (desktop) */}
+        <svg
+          className="hero-line-art absolute bottom-[12%] left-[4%] w-[60px] md:w-[90px] hidden md:block"
+          viewBox="0 0 100 60"
+          fill="none"
+        >
+          <path
+            className="hero-line-path"
+            d="M8 30 Q8 12 28 12 Q48 12 48 30 Q48 46 32 46 Q20 46 22 34 Q24 24 36 26 Q46 28 44 38 M56 22 Q66 14 78 20 Q92 28 82 42 Q74 52 62 46 Q54 42 60 34 Q64 28 72 32"
+            stroke="#D97762"
+            strokeWidth="1.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+
         {/* Cookie - bottom-right (desktop) */}
         <svg
-          className="hero-line-art bakery-doodle absolute bottom-[15%] right-[8%] w-[65px] md:w-[100px] hidden md:block"
+          className="hero-line-art absolute bottom-[14%] right-[6%] w-[55px] md:w-[90px] hidden md:block"
           viewBox="0 0 80 80"
           fill="none"
         >
           <path
             className="hero-line-path"
-            d="M40 8 C55 8 68 15 72 28 C76 41 72 55 62 64 C52 73 38 76 25 72 C12 68 4 55 4 40 C4 25 15 12 28 8 C32 7 36 7 40 8 Z"
+            d="M40 6 Q58 4 70 18 Q82 34 74 54 Q66 72 46 76 Q24 78 12 62 Q2 48 8 30 Q14 12 34 6 Q36 5 40 6 Z"
             stroke="#D97762"
             strokeWidth="1.3"
             strokeLinecap="round"
           />
-          <circle cx="25" cy="30" r="4" stroke="#D97762" strokeWidth="1.2" />
-          <circle cx="45" cy="25" r="3.5" stroke="#D97762" strokeWidth="1.2" />
-          <circle cx="55" cy="45" r="4" stroke="#D97762" strokeWidth="1.2" />
-          <circle cx="30" cy="55" r="3" stroke="#D97762" strokeWidth="1.2" />
-          <circle cx="42" cy="48" r="2.5" stroke="#D97762" strokeWidth="1.2" />
-          <circle cx="20" cy="42" r="2" stroke="#D97762" strokeWidth="1.2" />
+          <circle cx="26" cy="28" r="4.5" stroke="#D97762" strokeWidth="1" fill="none" />
+          <circle cx="48" cy="22" r="3.5" stroke="#D97762" strokeWidth="1" fill="none" />
+          <circle cx="58" cy="44" r="4" stroke="#D97762" strokeWidth="1" fill="none" />
+          <circle cx="32" cy="56" r="3.5" stroke="#D97762" strokeWidth="1" fill="none" />
+          <circle cx="44" cy="50" r="2.5" stroke="#D97762" strokeWidth="1" fill="none" />
         </svg>
+
         {/* Birthday candle - top-center-left (desktop) */}
         <svg
-          className="hero-line-art bakery-doodle absolute top-[15%] left-[25%] w-[40px] md:w-[65px] hidden md:block"
-          viewBox="0 0 40 100"
+          className="hero-line-art absolute top-[14%] left-[28%] w-[30px] md:w-[50px] hidden md:block"
+          viewBox="0 0 40 110"
           fill="none"
         >
           <path
             className="hero-line-path"
-            d="M20 30 L20 90 M14 90 L26 90 M12 30 L28 30 M20 30 L20 18 M16 18 C16 10 20 5 20 5 C20 5 24 10 24 18 C24 22 22 24 20 24 C18 24 16 22 16 18 Z M15 50 L25 50 M15 70 L25 70"
+            d="M20 22 Q16 14 20 6 Q24 14 20 22 Z M14 28 Q14 22 20 22 Q26 22 26 28 L26 92 Q26 98 20 98 Q14 98 14 92 Z M17 46 L23 46 M17 64 L23 64 M17 80 L23 80"
             stroke="#D97762"
             strokeWidth="1.2"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
         </svg>
+
         {/* Croissant - bottom center (desktop) */}
         <svg
-          className="hero-line-art bakery-doodle absolute bottom-[5%] left-[40%] w-[80px] md:w-[130px] hidden md:block"
-          viewBox="0 0 100 60"
+          className="hero-line-art absolute bottom-[4%] left-[38%] w-[70px] md:w-[115px] hidden md:block"
+          viewBox="0 0 100 55"
           fill="none"
         >
           <path
             className="hero-line-path"
-            d="M10 45 C10 45 15 20 30 15 C40 12 45 18 50 25 C55 18 60 12 70 15 C85 20 90 45 90 45 M10 45 C25 50 40 52 50 50 C60 52 75 50 90 45 M25 30 C30 25 35 28 40 32 M60 32 C65 28 70 25 75 30 M35 42 C40 38 45 38 50 40 C55 38 60 38 65 42"
-            stroke="#D97762"
-            strokeWidth="1.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-        {/* Rolling pin - mid-left */}
-        <svg
-          className="hero-line-art bakery-doodle absolute top-[55%] left-[2%] w-[40px] md:w-[65px] rotate-[-30deg]"
-          viewBox="0 0 40 120"
-          fill="none"
-        >
-          <path
-            className="hero-line-path"
-            d="M20 5 L20 15 M15 15 C12 15 10 18 10 22 L10 98 C10 102 12 105 15 105 L25 105 C28 105 30 102 30 98 L30 22 C30 18 28 15 25 15 Z M20 105 L20 115 M14 10 L26 10 M14 110 L26 110"
+            d="M8 40 Q12 18 30 14 Q42 11 50 24 Q58 11 70 14 Q88 18 92 40 Q70 48 50 46 Q30 48 8 40 Z M30 28 Q38 22 44 30 M56 30 Q62 22 70 28 M36 40 Q44 36 50 38 Q56 36 64 40"
             stroke="#D97762"
             strokeWidth="1.2"
             strokeLinecap="round"
