@@ -212,7 +212,7 @@ export default function ScatterGallery() {
         pin: true,
         pinSpacing: true,
         animation: tween,
-        scrub: 0.8,
+        scrub: 1.5,
         fastScrollEnd: true,
         onUpdate: ({ progress }) => {
           // Update progress bar fill

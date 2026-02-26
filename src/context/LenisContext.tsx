@@ -18,16 +18,18 @@ export function LenisProvider({ children }: { children: ReactNode }) {
 
   useLayoutEffect(() => {
     const instance = new Lenis({
-      lerp: 0.1,
+      lerp: 0.08,
       smoothWheel: true,
-      syncTouch: false,
+      syncTouch: true,
+      syncTouchLerp: 0.06,
+      touchMultiplier: 1.5,
     });
 
     instance.on("scroll", ScrollTrigger.update);
 
     const tickerFn = (time: number) => instance.raf(time * 1000);
     gsap.ticker.add(tickerFn);
-    gsap.ticker.lagSmoothing(500, 33);
+    gsap.ticker.lagSmoothing(1000, 16);
     tickerFnRef.current = tickerFn;
 
     setLenis(instance);

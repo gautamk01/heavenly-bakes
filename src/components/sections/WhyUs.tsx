@@ -89,7 +89,10 @@ export default function WhyUs() {
   }, []);
 
   return (
-    <section ref={sectionRef} className="w-full py-20 md:py-32 bg-background-light dark:bg-background-dark overflow-hidden relative">
+    <section
+      ref={sectionRef}
+      className="w-full py-20 md:py-32 bg-background-light dark:bg-background-dark overflow-hidden relative"
+    >
       {/* Bakery Doodles for Why Section */}
       <div className="absolute inset-0 w-full h-full pointer-events-none z-[0]">
         {/* Doodle: Candy / Lollipop - top right */}
@@ -167,7 +170,9 @@ export default function WhyUs() {
             </p>
             <h3 className="font-display text-3xl lg:text-5xl font-bold text-black dark:text-white leading-tight">
               Baked Fresh, <br />
-              <span className="italic font-light text-primary">Served with Love</span>
+              <span className="italic font-light text-primary">
+                Served with Love
+              </span>
             </h3>
             <p className="text-text-light/70 dark:text-text-dark/70 leading-relaxed text-lg font-body">
               Every creation from Heavenly Bakes is handcrafted using the finest
@@ -207,7 +212,9 @@ export default function WhyUs() {
               {/* Pillar 1 (top-left) */}
               <div className="whyus-pillar absolute left-[8%] top-[5px] flex flex-col items-center max-w-[180px] text-center z-10">
                 <div className="w-[88px] h-[88px] bg-primary rounded-full flex items-center justify-center text-white mb-4 shadow-xl ring-4 ring-background-light dark:ring-background-dark">
-                  <span className="material-icons text-3xl">local_shipping</span>
+                  <span className="material-icons text-3xl">
+                    local_shipping
+                  </span>
                 </div>
                 <h4 className="font-display font-bold text-lg mb-1 text-black dark:text-white">
                   Personal Delivery
@@ -244,25 +251,43 @@ export default function WhyUs() {
               </div>
             </div>
 
-            {/* Mobile: Horizontal feature chips */}
-            <div className="flex gap-3 overflow-x-auto pb-2 md:hidden snap-x snap-mandatory scrollbar-hide">
+            {/* Mobile: Vertical stacked feature cards */}
+            <div className="flex flex-col gap-4 md:hidden">
               {[
-                { icon: "local_shipping", title: "Personal Delivery", desc: "Fresh to your door" },
-                { icon: "eco", title: "100% Natural", desc: "No preservatives" },
-                { icon: "card_giftcard", title: "Gift-Ready", desc: "Beautifully packed" },
-              ].map((item) => (
+                {
+                  icon: "local_shipping",
+                  title: "Personal Delivery",
+                  desc: "Every cake delivered fresh to your doorstep, handled with care",
+                },
+                {
+                  icon: "eco",
+                  title: "100% Natural",
+                  desc: "No preservatives or artificial flavours — just honest baking",
+                },
+                {
+                  icon: "card_giftcard",
+                  title: "Gift-Ready",
+                  desc: "Beautifully packaged and ready to make someone smile",
+                },
+              ].map((item, idx) => (
                 <div
                   key={item.icon}
-                  className="whyus-mobile-chip snap-start shrink-0 w-[70vw] max-w-[260px] flex items-center gap-4 p-4 rounded-2xl bg-white dark:bg-zinc-800/80 border border-black/5 dark:border-white/8 shadow-sm"
+                  className={`whyus-mobile-chip flex items-center gap-4 p-4 rounded-2xl ${
+                    idx % 2 === 0
+                      ? "bg-primary/5 dark:bg-primary/10"
+                      : "bg-white dark:bg-zinc-800/80 border border-black/5 dark:border-white/8"
+                  }`}
                 >
-                  <div className="w-12 h-12 shrink-0 bg-primary/10 dark:bg-primary/20 rounded-xl flex items-center justify-center">
-                    <span className="material-icons text-primary text-xl">{item.icon}</span>
+                  <div className="w-14 h-14 shrink-0 bg-primary rounded-full flex items-center justify-center shadow-md">
+                    <span className="material-icons text-white text-2xl">
+                      {item.icon}
+                    </span>
                   </div>
                   <div>
-                    <h4 className="font-display font-bold text-sm text-black dark:text-white leading-tight">
+                    <h4 className="font-display font-bold text-base text-black dark:text-white leading-tight mb-0.5">
                       {item.title}
                     </h4>
-                    <p className="text-xs text-text-light/60 dark:text-text-dark/60 font-body mt-0.5">
+                    <p className="text-sm text-text-light/60 dark:text-text-dark/60 font-body leading-snug">
                       {item.desc}
                     </p>
                   </div>
@@ -283,16 +308,22 @@ export default function WhyUs() {
             <img
               alt="Beautifully decorated celebration cake by Heavenly Bakes"
               className="whyus-image relative z-10 w-full h-auto object-cover rounded-2xl shadow-2xl transform transition-transform duration-500 group-hover:scale-[1.02]"
-              src={cloudinaryUrl("/Cake%20images/p26/heavenlybakes.by.divya_1655043449_2859034135212055047_5465995859.jpg")}
+              src={cloudinaryUrl(
+                "/Cake%20images/p26/heavenlybakes.by.divya_1655043449_2859034135212055047_5465995859.jpg",
+              )}
               loading="lazy"
             />
 
             {/* Decorative leaf icons */}
             <div className="absolute top-4 left-12 text-primary/40 dark:text-primary/25 z-20">
-              <span className="material-icons text-4xl transform rotate-45">eco</span>
+              <span className="material-icons text-4xl transform rotate-45">
+                eco
+              </span>
             </div>
             <div className="absolute bottom-12 right-4 text-primary/40 dark:text-primary/25 z-20">
-              <span className="material-icons text-3xl transform -rotate-12">spa</span>
+              <span className="material-icons text-3xl transform -rotate-12">
+                spa
+              </span>
             </div>
           </div>
 
@@ -341,7 +372,9 @@ export default function WhyUs() {
                 </a>
               </div>
               <div className="stat-card bg-primary dark:bg-primary/90 p-7 rounded-xl text-white shadow-lg hover:shadow-xl transition-shadow">
-                <div className="text-3xl font-bold font-display mb-2">1500+</div>
+                <div className="text-3xl font-bold font-display mb-2">
+                  1500+
+                </div>
                 <p className="text-white/85 text-sm mb-5 leading-snug font-body">
                   Happy customers celebrating their special moments with us
                 </p>
@@ -371,42 +404,58 @@ export default function WhyUs() {
             <div className="grid grid-cols-2 gap-3 sm:hidden">
               <div className="stat-card bg-primary p-5 rounded-2xl text-white shadow-md">
                 <div className="text-2xl font-bold font-display">126+</div>
-                <p className="text-white/80 text-xs mt-1 leading-snug font-body">Unique designs</p>
+                <p className="text-white/80 text-xs mt-1 leading-snug font-body">
+                  Unique designs
+                </p>
                 <Link
                   className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-white/90"
                   to="/portfolio"
                 >
-                  Portfolio <span className="material-icons text-xs">arrow_forward</span>
+                  Portfolio{" "}
+                  <span className="material-icons text-xs">arrow_forward</span>
                 </Link>
               </div>
               <div className="stat-card bg-white dark:bg-zinc-800 p-5 rounded-2xl shadow-md border border-black/5 dark:border-white/8">
-                <div className="text-2xl font-bold font-display text-primary">100%</div>
-                <p className="text-text-light/70 dark:text-text-dark/70 text-xs mt-1 leading-snug font-body">Natural ingredients</p>
+                <div className="text-2xl font-bold font-display text-primary">
+                  100%
+                </div>
+                <p className="text-text-light/70 dark:text-text-dark/70 text-xs mt-1 leading-snug font-body">
+                  Natural ingredients
+                </p>
                 <a
                   className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary"
                   href="#about"
                 >
-                  Our Story <span className="material-icons text-xs">arrow_forward</span>
+                  Our Story{" "}
+                  <span className="material-icons text-xs">arrow_forward</span>
                 </a>
               </div>
               <div className="stat-card bg-white dark:bg-zinc-800 p-5 rounded-2xl shadow-md border border-black/5 dark:border-white/8">
-                <div className="text-2xl font-bold font-display text-primary">1500+</div>
-                <p className="text-text-light/70 dark:text-text-dark/70 text-xs mt-1 leading-snug font-body">Happy customers</p>
+                <div className="text-2xl font-bold font-display text-primary">
+                  1500+
+                </div>
+                <p className="text-text-light/70 dark:text-text-dark/70 text-xs mt-1 leading-snug font-body">
+                  Happy customers
+                </p>
                 <a
                   className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary"
                   href="#testimonials"
                 >
-                  Reviews <span className="material-icons text-xs">arrow_forward</span>
+                  Reviews{" "}
+                  <span className="material-icons text-xs">arrow_forward</span>
                 </a>
               </div>
               <div className="stat-card bg-primary p-5 rounded-2xl text-white shadow-md">
                 <div className="text-2xl font-bold font-display">24h</div>
-                <p className="text-white/80 text-xs mt-1 leading-snug font-body">Freshness guaranteed</p>
+                <p className="text-white/80 text-xs mt-1 leading-snug font-body">
+                  Freshness guaranteed
+                </p>
                 <a
                   className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-white/90"
                   href="#custom"
                 >
-                  Order <span className="material-icons text-xs">arrow_forward</span>
+                  Order{" "}
+                  <span className="material-icons text-xs">arrow_forward</span>
                 </a>
               </div>
             </div>
