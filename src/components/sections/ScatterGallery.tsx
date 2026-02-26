@@ -87,72 +87,57 @@ export default function ScatterGallery() {
     const isMobileLayout = vw <= 768;
 
     // ============================================================
-    // MOBILE: Stacked Card-Deck Reveal
+    // MOBILE: Simple Horizontal Scroll Gallery
     // ============================================================
     if (isMobileLayout) {
-      const CARD_W = vw <= 480 ? 220 : 240;
-      const CARD_H = vw <= 480 ? 290 : 310;
-      const CARDS_PER_SET = 5;
-      const TOTAL_SECTIONS = HEADINGS.length;
-      const SCROLL_VH = 5;
+      const NUM_CARDS = 6;
+      const CARD_W = vw <= 480 ? Math.round(vw * 0.72) : Math.round(vw * 0.6);
+      const CARD_H = Math.round(CARD_W * 1.3);
+      const GAP = 16;
+      const SCROLL_VH = 3;
 
-      // Cards positioned in upper ~40% of viewport
-      const stackCenterX = vw / 2;
-      const stackCenterY = vh * 0.35;
+      // Create a horizontal strip container
+      const strip = document.createElement("div");
+      strip.className = "mobile-scroll-strip";
+      strip.style.cssText = `
+        display: flex;
+        gap: ${GAP}px;
+        position: absolute;
+        top: ${vh * 0.12}px;
+        left: ${(vw - CARD_W) / 2}px;
+        will-change: transform;
+      `;
+      cardsContainer!.appendChild(strip);
 
-      const mobileState = {
-        currentSection: 0,
-        revealedInSection: 0,
-        hintHidden: false,
-      };
-
-      let currentCards: HTMLElement[] = [];
-
-      function getStackPos(stackDepth: number) {
-        return {
-          x: stackCenterX - CARD_W / 2 + stackDepth * 2,
-          y: stackCenterY - CARD_H / 2 - stackDepth * 4,
-          rotation: (stackDepth - 2) * 1.8,
-          scale: 1 - stackDepth * 0.025,
-        };
+      // Add 6 cards to the strip
+      for (let i = 0; i < NUM_CARDS; i++) {
+        const imgData = IMAGES[i % IMAGES.length];
+        const card = createCardElement(
+          imgData,
+          CARD_W,
+          CARD_H,
+          "mobile-slider-card",
+        );
+        // Override absolute positioning for flex layout
+        card.style.position = "relative";
+        card.style.flexShrink = "0";
+        strip.appendChild(card);
       }
 
-      function createMobileStack(setIndex: number) {
-        const offset =
-          (setIndex * Math.floor(IMAGES.length / TOTAL_SECTIONS)) %
-          IMAGES.length;
-        const cards: HTMLElement[] = [];
-
-        // Build back-to-front so DOM order = paint order
-        // cards[0] = front (top of stack), cards[last] = back (bottom)
-        for (let i = 0; i < CARDS_PER_SET; i++) {
-          const imgData = IMAGES[(i + offset) % IMAGES.length];
-          const card = createCardElement(imgData, CARD_W, CARD_H, "intro-card");
-          cardsContainer!.appendChild(card);
-
-          // i=0 is front card (stackDepth=0, highest zIndex)
-          // i=last is back card (stackDepth=max, lowest zIndex)
-          const stackDepth = i;
-          const pos = getStackPos(stackDepth);
-          gsap.set(card, {
-            x: pos.x,
-            y: pos.y,
-            rotation: pos.rotation,
-            scale: pos.scale,
-            zIndex: CARDS_PER_SET - i,
-            opacity: 1,
-            force3D: true,
-          });
-          cards.push(card);
-        }
-        return cards;
-      }
-
-      // Set up initial state
-      currentCards = createMobileStack(0);
+      // Show heading
       galleryHeading.textContent = HEADINGS[0];
       gsap.set(galleryHeading, { opacity: 1 });
       if (introHeading) gsap.set(introHeading, { opacity: 0 });
+
+      // Calculate how far to scroll horizontally
+      const totalStripWidth = NUM_CARDS * CARD_W + (NUM_CARDS - 1) * GAP;
+      const scrollDistance = totalStripWidth - CARD_W; // scroll until last card is centered
+
+      // Animate the strip horizontally on scroll
+      const tween = gsap.to(strip, {
+        x: -scrollDistance,
+        ease: "none",
+      });
 
       const st = ScrollTrigger.create({
         trigger: ".scatter-gallery",
@@ -160,140 +145,27 @@ export default function ScatterGallery() {
         end: () => `+=${vh * SCROLL_VH}`,
         pin: true,
         pinSpacing: true,
+        animation: tween,
+        scrub: 0.8,
         fastScrollEnd: true,
         onUpdate: ({ progress }) => {
           // Hide scroll hint
-          if (
-            !mobileState.hintHidden &&
-            scrollHintRef.current &&
-            progress > 0.02
-          ) {
-            mobileState.hintHidden = true;
+          if (scrollHintRef.current && progress > 0.02) {
             gsap.to(scrollHintRef.current, {
               opacity: 0,
-              duration: 0.4,
+              duration: 0.3,
               ease: "power2.out",
+              overwrite: true,
             });
           }
 
-          // Determine which section we're in
-          const sectionProgress = progress * TOTAL_SECTIONS;
-          const sectionIndex = Math.min(
-            Math.floor(sectionProgress),
-            TOTAL_SECTIONS - 1,
+          // Update heading based on scroll progress
+          const headingIndex = Math.min(
+            Math.floor(progress * HEADINGS.length),
+            HEADINGS.length - 1,
           );
-          const withinSection = sectionProgress - sectionIndex;
-
-          // Section transition: swap card set
-          if (sectionIndex !== mobileState.currentSection) {
-            const oldCards = currentCards;
-
-            // Slide old stack out to the left
-            oldCards.forEach((el, i) => {
-              gsap.to(el, {
-                x: -CARD_W - 40,
-                rotation: -15,
-                opacity: 0,
-                duration: 0.35,
-                delay: i * 0.02,
-                ease: "power2.in",
-                force3D: true,
-                onComplete: () => {
-                  gsap.killTweensOf(el);
-                  el.remove();
-                },
-              });
-            });
-
-            // Create new stack, slide in from right
-            currentCards = createMobileStack(sectionIndex);
-            currentCards.forEach((card, i) => {
-              const stackDepth = i;
-              const finalPos = getStackPos(stackDepth);
-              gsap.set(card, {
-                x: vw + 40,
-                rotation: 15,
-                opacity: 0,
-              });
-              gsap.to(card, {
-                x: finalPos.x,
-                rotation: finalPos.rotation,
-                opacity: 1,
-                duration: 0.4,
-                delay: 0.15 + i * 0.03,
-                ease: "back.out(1.2)",
-                force3D: true,
-              });
-            });
-
-            // Heading transition
-            gsap.to(galleryHeading, {
-              opacity: 0,
-              y: 10,
-              duration: 0.2,
-              ease: "power2.in",
-              onComplete: () => {
-                galleryHeading.textContent = HEADINGS[sectionIndex];
-                gsap.to(galleryHeading, {
-                  opacity: 1,
-                  y: 0,
-                  duration: 0.3,
-                  ease: "power2.out",
-                });
-              },
-            });
-
-            mobileState.currentSection = sectionIndex;
-            mobileState.revealedInSection = 0;
-          }
-
-          // Within-section card peel: front card (index 0) peels off first
-          // cardsToReveal = how many cards have been peeled from the front
-          const cardsToReveal = Math.floor(
-            withinSection * (CARDS_PER_SET + 0.5),
-          );
-
-          if (cardsToReveal > mobileState.revealedInSection) {
-            // Peel front cards off — they fly up and away
-            for (
-              let i = mobileState.revealedInSection;
-              i < Math.min(cardsToReveal, currentCards.length - 1);
-              i++
-            ) {
-              const card = currentCards[i];
-              gsap.to(card, {
-                y: stackCenterY - CARD_H / 2 - 120,
-                opacity: 0,
-                scale: 1.05,
-                rotation: (i % 2 === 0 ? 1 : -1) * 12,
-                duration: 0.5,
-                ease: "power3.out",
-                force3D: true,
-              });
-            }
-            mobileState.revealedInSection = cardsToReveal;
-          } else if (cardsToReveal < mobileState.revealedInSection) {
-            // Scrolling back — restore peeled front cards
-            for (
-              let i = cardsToReveal;
-              i < mobileState.revealedInSection;
-              i++
-            ) {
-              const card = currentCards[i];
-              const stackDepth = i; // i=0 is front (stackDepth=0)
-              const pos = getStackPos(stackDepth);
-              gsap.to(card, {
-                x: pos.x,
-                y: pos.y,
-                opacity: 1,
-                scale: pos.scale,
-                rotation: pos.rotation,
-                duration: 0.35,
-                ease: "power2.out",
-                force3D: true,
-              });
-            }
-            mobileState.revealedInSection = cardsToReveal;
+          if (galleryHeading.textContent !== HEADINGS[headingIndex]) {
+            galleryHeading.textContent = HEADINGS[headingIndex];
           }
         },
       });
@@ -314,8 +186,10 @@ export default function ScatterGallery() {
         window.removeEventListener("resize", onResize);
         clearTimeout(resizeTimer);
         st.kill();
+        tween.kill();
+        strip.remove();
         gallery
-          .querySelectorAll(".scatter-card, .intro-card")
+          .querySelectorAll(".scatter-card, .intro-card, .mobile-slider-card")
           .forEach((el) => {
             gsap.killTweensOf(el);
             el.remove();
@@ -382,16 +256,14 @@ export default function ScatterGallery() {
       const radiusX = isOuter ? outerRadiusX : innerRadiusX;
       const radiusY = isOuter ? outerRadiusY : innerRadiusY;
 
-      const angleOffset =
-        setIndex * 0.7 + (isOuter ? Math.PI / ringTotal : 0);
+      const angleOffset = setIndex * 0.7 + (isOuter ? Math.PI / ringTotal : 0);
       const angle = angleOffset + (ringIndex / ringTotal) * Math.PI * 2;
 
       const jitterX = (seededRandom(seed + 300) - 0.5) * 40;
       const jitterY = (seededRandom(seed + 400) - 0.5) * 40;
 
       let x = cx + Math.cos(angle) * radiusX - CONFIG.cardWidth / 2 + jitterX;
-      let y =
-        cy + Math.sin(angle) * radiusY - CONFIG.cardHeight / 2 + jitterY;
+      let y = cy + Math.sin(angle) * radiusY - CONFIG.cardHeight / 2 + jitterY;
 
       x = Math.max(10, Math.min(x, vw - CONFIG.cardWidth - 10));
       y = Math.max(10, Math.min(y, vh - CONFIG.cardHeight - 10));
@@ -485,10 +357,7 @@ export default function ScatterGallery() {
 
       const withAngles = introCards.map((card) => ({
         card,
-        targetAngle: Math.atan2(
-          card.targetY - centerY,
-          card.targetX - centerX,
-        ),
+        targetAngle: Math.atan2(card.targetY - centerY, card.targetX - centerX),
       }));
       withAngles.sort((a, b) => a.targetAngle - b.targetAngle);
       withAngles.forEach((item, sortedIndex) => {
@@ -522,8 +391,7 @@ export default function ScatterGallery() {
         centerX: number;
         centerY: number;
       }> = [];
-      const offset =
-        (setIndex * Math.floor(IMAGES.length / 4)) % IMAGES.length;
+      const offset = (setIndex * Math.floor(IMAGES.length / 4)) % IMAGES.length;
 
       for (let i = 0; i < CONFIG.cardCount; i++) {
         const imgData = IMAGES[(i + offset) % IMAGES.length];
@@ -753,8 +621,7 @@ export default function ScatterGallery() {
                 cx + s.cosAngle * spreadDist - CONFIG.cardWidth / 2;
               const spreadY =
                 cy + s.sinAngle * spreadDist - CONFIG.cardHeight / 2;
-              const spreadRot =
-                s.stackRot + eased * ((s.isEven ? 1 : -1) * 15);
+              const spreadRot = s.stackRot + eased * ((s.isEven ? 1 : -1) * 15);
 
               setter.x(lerp(s.stackX, spreadX, eased));
               setter.y(lerp(s.stackY, spreadY, eased));
@@ -816,8 +683,7 @@ export default function ScatterGallery() {
           }
         } else {
           // SCATTER GALLERY PHASE
-          const scatterProgress =
-            (progress - introRatio) / (1 - introRatio);
+          const scatterProgress = (progress - introRatio) / (1 - introRatio);
 
           if (!state.introComplete) {
             state.introComplete = true;
