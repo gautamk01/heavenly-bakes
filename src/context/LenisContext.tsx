@@ -29,7 +29,7 @@ export function LenisProvider({ children }: { children: ReactNode }) {
 
     const tickerFn = (time: number) => instance.raf(time * 1000);
     gsap.ticker.add(tickerFn);
-    gsap.ticker.lagSmoothing(0);
+    gsap.ticker.lagSmoothing(500, 33);
     tickerFnRef.current = tickerFn;
 
     setLenis(instance);

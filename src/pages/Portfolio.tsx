@@ -84,18 +84,30 @@ export default function Portfolio() {
 
   return (
     <div className="portfolio-page">
-      {/* Portfolio-specific Nav (matches p5 reference) */}
-      <nav>
-        <Link to="/" className="nav-logo">
-          Heavenly Bakes <span className="nav-logo-sub">by divya</span>
-        </Link>
-        <div className="nav-links">
-          <Link to="/">Home</Link>
-          <a href="/#menu">Menu</a>
-          <a href="/#gallery">Gallery</a>
-          <a href="/#contact">Contact</a>
+      {/* Fixed back arrow — always visible */}
+      <Link to="/" className="portfolio-back-arrow" aria-label="Back to Home">
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M19 12H5" />
+          <path d="M12 19l-7-7 7-7" />
+        </svg>
+      </Link>
+
+      {/* Top Bar — centered logo (scrolls normally) */}
+      <div className="portfolio-topbar">
+        <div className="portfolio-logo">
+          <span className="portfolio-logo-name">Heavenly Bakes</span>
+          <span className="portfolio-logo-sub">by divya</span>
         </div>
-      </nav>
+      </div>
 
       {/* Header */}
       <header className="portfolio-header">

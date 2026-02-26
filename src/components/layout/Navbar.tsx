@@ -13,21 +13,13 @@ export default function Navbar() {
     const nav = navRef.current;
     if (!nav) return;
 
-    let navLastDir = 0;
     const st = ScrollTrigger.create({
-      start: "top -80",
+      start: "top -50",
       end: "max",
       onUpdate: (self) => {
-        if (self.direction !== navLastDir) {
-          navLastDir = self.direction;
-          if (self.direction === 1) {
-            gsap.to(nav, { yPercent: -100, duration: 0.35, ease: "power2.out" });
-          } else {
-            gsap.to(nav, { yPercent: 0, duration: 0.35, ease: "power2.out" });
-            nav.classList.add("nav-scrolled");
-          }
-        }
-        if (self.scroll() < 80) {
+        if (self.scroll() > 50) {
+          nav.classList.add("nav-scrolled");
+        } else {
           nav.classList.remove("nav-scrolled");
         }
       },
@@ -41,13 +33,19 @@ export default function Navbar() {
       <nav
         ref={navRef}
         id="main-nav"
-        className="w-full px-4 md:px-8 py-4 md:py-6 flex justify-between items-center bg-transparent z-50 fixed top-0 left-0"
+        className="w-full px-4 md:px-8 py-4 md:py-6 flex justify-between items-center bg-transparent z-50 fixed top-0 left-0 text-black dark:text-white transition-colors duration-300"
       >
         {/* Desktop left links */}
-        <div className="hidden md:flex gap-6 text-xs uppercase tracking-widest font-medium">
-          <a className="hover:text-primary transition-colors cursor-pointer" href="#about">About</a>
-          <a className="hover:text-primary transition-colors cursor-pointer" href="#menu">Menu</a>
-          <a className="hover:text-primary transition-colors cursor-pointer" href="#gallery">Gallery</a>
+        <div className="hidden md:flex gap-8 text-[0.8rem] uppercase tracking-widest font-semibold items-center">
+          <a className="nav-link" href="#about">
+            About
+          </a>
+          <a className="nav-link" href="#menu">
+            Menu
+          </a>
+          <a className="nav-link" href="#gallery">
+            Gallery
+          </a>
         </div>
 
         {/* Logo */}
@@ -68,12 +66,19 @@ export default function Navbar() {
         </div>
 
         {/* Right links + actions */}
-        <div className="flex items-center gap-4 md:gap-6 text-xs uppercase tracking-widest font-medium">
-          <a className="hidden md:block hover:text-primary transition-colors cursor-pointer" href="#custom">Custom</a>
-          <a className="hidden md:block hover:text-primary transition-colors cursor-pointer" href="#contact">Contact</a>
+        <div className="flex items-center gap-5 md:gap-6 text-[0.8rem] uppercase tracking-widest font-semibold">
+          <a className="hidden md:block nav-link" href="#custom">
+            Custom
+          </a>
+          <a
+            className="hidden lg:flex bg-primary text-white px-6 py-2.5 rounded-full hover:bg-primary-dark transition-all hover:shadow-lg hover:-translate-y-0.5 cursor-pointer items-center justify-center"
+            href="#contact"
+          >
+            Order Now
+          </a>
           <a
             className="hidden md:flex items-center gap-1 hover:text-primary transition-colors cursor-pointer"
-            href="https://instagram.com"
+            href="https://www.instagram.com/heavenlybakes.by.divya/"
             target="_blank"
             rel="noopener"
           >
@@ -86,7 +91,9 @@ export default function Navbar() {
             className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
             onClick={toggleDark}
           >
-            <span className="material-icons text-xl align-middle">brightness_4</span>
+            <span className="material-icons text-xl align-middle">
+              brightness_4
+            </span>
           </button>
           <button
             className="md:hidden p-2 cursor-pointer"

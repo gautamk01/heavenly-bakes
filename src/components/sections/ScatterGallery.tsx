@@ -156,7 +156,7 @@ export default function ScatterGallery() {
     for (let i = 0; i < introCardCount; i++) {
       const card = document.createElement("div");
       card.classList.add("intro-card");
-      card.style.cssText = `width:${CONFIG.cardWidth}px;height:${CONFIG.cardHeight}px;contain:layout style paint;`;
+      card.style.cssText = `width:${CONFIG.cardWidth}px;height:${CONFIG.cardHeight}px;`;
 
       const imgData = IMAGES[i % IMAGES.length];
       const fullSrc = optimizedUrl(imgData.src);
@@ -271,7 +271,7 @@ export default function ScatterGallery() {
       for (let i = 0; i < CONFIG.cardCount; i++) {
         const card = document.createElement("div");
         card.classList.add("scatter-card");
-        card.style.cssText = `width:${CONFIG.cardWidth}px;height:${CONFIG.cardHeight}px;contain:layout style paint;`;
+        card.style.cssText = `width:${CONFIG.cardWidth}px;height:${CONFIG.cardHeight}px;`;
 
         const imgData = IMAGES[(i + offset) % IMAGES.length];
         const fullSrc = optimizedUrl(imgData.src);

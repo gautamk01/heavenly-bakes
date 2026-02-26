@@ -30,7 +30,9 @@ export default function MobileNav({ open, onClose }: MobileNavProps) {
   return (
     <div
       className={`fixed inset-0 z-[100] transition-opacity duration-300 ${
-        open ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
+        open
+          ? "pointer-events-auto opacity-100"
+          : "pointer-events-none opacity-0"
       }`}
     >
       {/* Backdrop */}
@@ -69,7 +71,7 @@ export default function MobileNav({ open, onClose }: MobileNavProps) {
 
         <a
           className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors"
-          href="https://instagram.com"
+          href="https://www.instagram.com/heavenlybakes.by.divya/"
           target="_blank"
           rel="noopener"
         >
