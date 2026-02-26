@@ -91,10 +91,20 @@ export default function ScatterGallery() {
     // ============================================================
     if (isMobileLayout) {
       const NUM_CARDS = 6;
-      const CARD_W = vw <= 480 ? Math.round(vw * 0.72) : Math.round(vw * 0.6);
-      const CARD_H = Math.round(CARD_W * 1.3);
-      const GAP = 16;
+      const CARD_W =
+        vw <= 400
+          ? Math.round(vw * 0.68)
+          : vw <= 480
+            ? Math.round(vw * 0.65)
+            : Math.round(vw * 0.55);
+      const CARD_H = Math.round(CARD_W * 1.25);
+      const GAP = vw <= 480 ? 14 : 16;
       const SCROLL_VH = 3;
+
+      // Title area takes ~18% from top, cards centered in remaining space
+      const titleAreaHeight = vh * 0.18;
+      const remainingHeight = vh - titleAreaHeight;
+      const stripTop = titleAreaHeight + (remainingHeight - CARD_H) / 2 - 20;
 
       // Create a horizontal strip container
       const strip = document.createElement("div");
@@ -103,15 +113,16 @@ export default function ScatterGallery() {
         display: flex;
         gap: ${GAP}px;
         position: absolute;
-        top: ${vh * 0.12}px;
+        top: ${stripTop}px;
         left: ${(vw - CARD_W) / 2}px;
         will-change: transform;
       `;
       cardsContainer!.appendChild(strip);
 
-      // Add 6 cards to the strip
+      // Use images from the second half of the array for variety
+      const imageOffset = Math.floor(IMAGES.length / 2);
       for (let i = 0; i < NUM_CARDS; i++) {
-        const imgData = IMAGES[i % IMAGES.length];
+        const imgData = IMAGES[(i + imageOffset) % IMAGES.length];
         const card = createCardElement(
           imgData,
           CARD_W,
@@ -124,10 +135,65 @@ export default function ScatterGallery() {
         strip.appendChild(card);
       }
 
-      // Show heading
+      // Show intro heading as the section title at top
+      if (introHeading) {
+        introHeading.style.zIndex = "20";
+        gsap.set(introHeading, { opacity: 1 });
+      }
+      // Show the scatter heading at bottom (updates during scroll)
       galleryHeading.textContent = HEADINGS[0];
       gsap.set(galleryHeading, { opacity: 1 });
-      if (introHeading) gsap.set(introHeading, { opacity: 0 });
+
+      // --- Progress line below cards ---
+      const progressBarTop = stripTop + CARD_H + 20;
+      const progressTrack = document.createElement("div");
+      progressTrack.className = "mobile-progress-track";
+      progressTrack.style.cssText = `
+        position: absolute;
+        top: ${progressBarTop}px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: ${CARD_W}px;
+        height: 3px;
+        background: rgba(0, 0, 0, 0.08);
+        border-radius: 2px;
+        z-index: 15;
+        overflow: hidden;
+      `;
+
+      const progressFill = document.createElement("div");
+      progressFill.style.cssText = `
+        width: 0%;
+        height: 100%;
+        border-radius: 2px;
+        background: linear-gradient(90deg, #d97762, #e8a87c, #d97762);
+        transition: width 0.1s ease-out;
+      `;
+      progressTrack.appendChild(progressFill);
+      cardsContainer!.appendChild(progressTrack);
+
+      // --- Scroll indicator below progress bar ---
+      const scrollIndicator = document.createElement("div");
+      scrollIndicator.className = "mobile-scroll-indicator";
+      scrollIndicator.style.cssText = `
+        position: absolute;
+        top: ${progressBarTop + 18}px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        z-index: 15;
+        opacity: 0.6;
+      `;
+      scrollIndicator.innerHTML = `
+        <span style="font-size: 0.65rem; color: var(--color-text-light); letter-spacing: 0.1em; text-transform: uppercase; font-family: var(--font-body);">Scroll</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--color-primary); animation: scrollChevron 1.5s ease-in-out infinite;">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      `;
+      cardsContainer!.appendChild(scrollIndicator);
 
       // Calculate how far to scroll horizontally
       const totalStripWidth = NUM_CARDS * CARD_W + (NUM_CARDS - 1) * GAP;
@@ -149,6 +215,19 @@ export default function ScatterGallery() {
         scrub: 0.8,
         fastScrollEnd: true,
         onUpdate: ({ progress }) => {
+          // Update progress bar fill
+          progressFill.style.width = `${progress * 100}%`;
+
+          // Hide scroll indicator after scrolling starts
+          if (progress > 0.02) {
+            gsap.to(scrollIndicator, {
+              opacity: 0,
+              duration: 0.3,
+              ease: "power2.out",
+              overwrite: true,
+            });
+          }
+
           // Hide scroll hint
           if (scrollHintRef.current && progress > 0.02) {
             gsap.to(scrollHintRef.current, {
@@ -159,7 +238,7 @@ export default function ScatterGallery() {
             });
           }
 
-          // Update heading based on scroll progress
+          // Update bottom heading text based on scroll progress
           const headingIndex = Math.min(
             Math.floor(progress * HEADINGS.length),
             HEADINGS.length - 1,
@@ -188,6 +267,8 @@ export default function ScatterGallery() {
         st.kill();
         tween.kill();
         strip.remove();
+        progressTrack.remove();
+        scrollIndicator.remove();
         gallery
           .querySelectorAll(".scatter-card, .intro-card, .mobile-slider-card")
           .forEach((el) => {

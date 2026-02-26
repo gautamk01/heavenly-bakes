@@ -517,6 +517,18 @@ img {
   }
 }
 
+@keyframes scrollChevron {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translateY(4px);
+    opacity: 1;
+  }
+}
+
 .scatter-card {
   position: absolute;
   left: 0;
@@ -1027,11 +1039,15 @@ img {
     border: 1px solid rgba(255, 255, 255, 0.08);
   }
   .intro-heading {
-    width: 85%;
-    padding: 0.75rem;
-    font-size: clamp(1.2rem, 5.5vw, 1.8rem);
-    top: 50%;
-    transform: translateY(-50%);
+    width: 90%;
+    padding: 0.75rem 1rem;
+    font-size: clamp(1.1rem, 5vw, 1.6rem);
+    top: 5.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: none;
+    border: none;
+    text-shadow: none;
   }
   .intro-card {
     border-width: 5px;
