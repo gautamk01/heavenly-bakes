@@ -2,7 +2,9 @@ import { useRef, useLayoutEffect } from "react";
 import gsap from "gsap";
 import SplitText from "gsap/SplitText";
 import { usePreloader } from "@/context/PreloaderContext";
-
+import { loadCakeData } from "@/lib/cakeLoader";
+import { preloadImages } from "@/lib/imagePreloader";
+import { optimizedUrl, lqipUrl } from "@/lib/cloudinaryUrl";
 
 const PRELOADER_SVG_ICONS = [
   `<svg viewBox="0 0 40 48" fill="none"><path d="M12 22C9 22 7 19 9 16C11 13 16 11 20 11C24 11 29 13 31 16C33 19 31 22 28 22Z M11 24L29 24C29 24 30 25 30 26L27 42C27 43 26 44 25 44L15 44C14 44 13 43 13 42L10 26C10 25 11 24 11 24Z M20 8C20 6 20 4 20 3" stroke="#D97762" stroke-width="1.2" stroke-linecap="round"/></svg>`,
@@ -48,6 +50,12 @@ export default function Preloader() {
       });
       gsap.set(".hero-line-art", { opacity: 0.15 });
 
+      // Background preload for cache freshness on return visits
+      loadCakeData().then((cakes) => {
+        const fullUrls = cakes.map((c) => optimizedUrl(c.src));
+        preloadImages(fullUrls);
+      });
+
       // Register empty timeline so downstream components can chain
       registerTimeline(gsap.timeline());
       return;
@@ -59,6 +67,16 @@ export default function Preloader() {
 
     // Mark as shown for this session
     sessionStorage.setItem("preloaderShown", "true");
+
+    // Kick off image preloading in parallel with preloader animation
+    loadCakeData().then((cakes) => {
+      // Preload LQIP first (tiny, loads fast)
+      const lqipUrls = cakes.map((c) => lqipUrl(c.src));
+      preloadImages(lqipUrls);
+      // Then preload optimized full-quality images
+      const fullUrls = cakes.map((c) => optimizedUrl(c.src));
+      preloadImages(fullUrls);
+    });
 
     const isMobile = window.matchMedia("(max-width: 767px)").matches;
 

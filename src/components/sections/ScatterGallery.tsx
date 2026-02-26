@@ -2,6 +2,8 @@ import { useRef, useLayoutEffect } from "react";
 import gsap from "gsap";
 import ScrollTrigger from "gsap/ScrollTrigger";
 import { useCakeData } from "@/hooks/useCakeData";
+import { lqipUrl, optimizedUrl } from "@/lib/cloudinaryUrl";
+import { isPreloaded, preloadImage } from "@/lib/imagePreloader";
 
 const HEADINGS = [
   "Every creation begins with flour, butter & a little bit of magic",
@@ -125,11 +127,17 @@ export default function ScatterGallery() {
       const vary = () => (Math.random() - 0.5) * 300;
 
       if (minDistance === distances.left)
-        return { x: -CONFIG.cardWidth - Math.random() * 150, y: cy - offsetY + vary() };
+        return {
+          x: -CONFIG.cardWidth - Math.random() * 150,
+          y: cy - offsetY + vary(),
+        };
       if (minDistance === distances.right)
         return { x: vw + 50 + Math.random() * 150, y: cy - offsetY + vary() };
       if (minDistance === distances.top)
-        return { x: cx - offsetX + vary(), y: -CONFIG.cardHeight - Math.random() * 150 };
+        return {
+          x: cx - offsetX + vary(),
+          y: -CONFIG.cardHeight - Math.random() * 150,
+        };
       return { x: cx - offsetX + vary(), y: vh + 50 + Math.random() * 150 };
     }
 
@@ -151,11 +159,25 @@ export default function ScatterGallery() {
       card.style.cssText = `width:${CONFIG.cardWidth}px;height:${CONFIG.cardHeight}px;contain:layout style paint;`;
 
       const imgData = IMAGES[i % IMAGES.length];
+      const fullSrc = optimizedUrl(imgData.src);
       const img = document.createElement("img");
-      img.src = imgData.src;
       img.alt = imgData.alt;
-      img.loading = "eager";
       img.decoding = "async";
+
+      if (isPreloaded(fullSrc)) {
+        // Already cached — use full image directly, no blur
+        img.src = fullSrc;
+      } else {
+        // Show LQIP with blur, then transition
+        img.src = lqipUrl(imgData.src);
+        img.classList.add("lqip-blur");
+        preloadImage(fullSrc).then(() => {
+          img.src = fullSrc;
+          requestAnimationFrame(() => {
+            img.classList.remove("lqip-blur");
+          });
+        });
+      }
       card.appendChild(img);
 
       const overlay = document.createElement("div");
@@ -239,7 +261,11 @@ export default function ScatterGallery() {
 
     // ---- SCATTER GALLERY CARDS ----
     function createCards(setIndex: number) {
-      const cards: Array<{ element: HTMLElement; centerX: number; centerY: number }> = [];
+      const cards: Array<{
+        element: HTMLElement;
+        centerX: number;
+        centerY: number;
+      }> = [];
       const offset = (setIndex * Math.floor(IMAGES.length / 4)) % IMAGES.length;
 
       for (let i = 0; i < CONFIG.cardCount; i++) {
@@ -248,11 +274,23 @@ export default function ScatterGallery() {
         card.style.cssText = `width:${CONFIG.cardWidth}px;height:${CONFIG.cardHeight}px;contain:layout style paint;`;
 
         const imgData = IMAGES[(i + offset) % IMAGES.length];
+        const fullSrc = optimizedUrl(imgData.src);
         const img = document.createElement("img");
-        img.src = imgData.src;
-        img.loading = "eager";
-        img.decoding = "async";
         img.alt = imgData.alt;
+        img.decoding = "async";
+
+        if (isPreloaded(fullSrc)) {
+          img.src = fullSrc;
+        } else {
+          img.src = lqipUrl(imgData.src);
+          img.classList.add("lqip-blur");
+          preloadImage(fullSrc).then(() => {
+            img.src = fullSrc;
+            requestAnimationFrame(() => {
+              img.classList.remove("lqip-blur");
+            });
+          });
+        }
         card.appendChild(img);
 
         const overlay = document.createElement("div");
@@ -270,7 +308,12 @@ export default function ScatterGallery() {
         card.appendChild(overlay);
 
         const pos = getScatterPosition(i, setIndex);
-        gsap.set(card, { x: pos.x, y: pos.y, rotation: pos.rotation, force3D: true });
+        gsap.set(card, {
+          x: pos.x,
+          y: pos.y,
+          rotation: pos.rotation,
+          force3D: true,
+        });
 
         gallery!.appendChild(card);
         cards.push({
@@ -284,9 +327,19 @@ export default function ScatterGallery() {
 
     function animateHeading(newText: string) {
       const tl = gsap.timeline();
-      tl.to(galleryHeading, { opacity: 0, duration: CONFIG.headingFadeDuration, ease: "power2.inOut" })
-        .call(() => { galleryHeading!.textContent = newText; })
-        .to(galleryHeading, { opacity: 1, duration: CONFIG.headingFadeDuration, ease: "power2.inOut" });
+      tl.to(galleryHeading, {
+        opacity: 0,
+        duration: CONFIG.headingFadeDuration,
+        ease: "power2.inOut",
+      })
+        .call(() => {
+          galleryHeading!.textContent = newText;
+        })
+        .to(galleryHeading, {
+          opacity: 1,
+          duration: CONFIG.headingFadeDuration,
+          ease: "power2.inOut",
+        });
       return tl;
     }
 
@@ -305,10 +358,12 @@ export default function ScatterGallery() {
         tl.to(
           element,
           {
-            x: edge.x, y: edge.y,
+            x: edge.x,
+            y: edge.y,
             rotation: Math.random() * 180 - 90,
             duration: CONFIG.animationDuration,
-            ease: "power2.in", force3D: true,
+            ease: "power2.in",
+            force3D: true,
             onComplete: () => element.remove(),
           },
           0,
@@ -317,7 +372,12 @@ export default function ScatterGallery() {
 
       enteringCards.forEach(({ element, centerX, centerY }) => {
         const edge = getEdgePosition(centerX, centerY);
-        gsap.set(element, { x: edge.x, y: edge.y, rotation: Math.random() * 180 - 90, force3D: true });
+        gsap.set(element, {
+          x: edge.x,
+          y: edge.y,
+          rotation: Math.random() * 180 - 90,
+          force3D: true,
+        });
         const finalX = centerX - CONFIG.cardWidth / 2;
         const finalY = centerY - CONFIG.cardHeight / 2;
         tl.to(
@@ -327,12 +387,16 @@ export default function ScatterGallery() {
             y: finalY,
             rotation: Math.random() * 40 - 20,
             duration: CONFIG.animationDuration + 0.2,
-            ease: "back.out(1.2)", force3D: true,
+            ease: "back.out(1.2)",
+            force3D: true,
             onComplete: () => {
               const idle = gsap.to(element, {
-                y: finalY + 12, rotation: "+=2",
+                y: finalY + 12,
+                rotation: "+=2",
                 duration: 2 + Math.random() * 2,
-                repeat: -1, yoyo: true, ease: "sine.inOut",
+                repeat: -1,
+                yoyo: true,
+                ease: "sine.inOut",
                 force3D: true,
               });
               idleTweens.push(idle);
@@ -403,7 +467,10 @@ export default function ScatterGallery() {
       opacity: gsap.quickSetter(element, "opacity"),
     }));
     const headingOpacitySetter = gsap.quickSetter(introHeading!, "opacity");
-    const galleryHeadingOpacitySetter = gsap.quickSetter(galleryHeading, "opacity");
+    const galleryHeadingOpacitySetter = gsap.quickSetter(
+      galleryHeading,
+      "opacity",
+    );
 
     const st = ScrollTrigger.create({
       trigger: ".scatter-gallery",
@@ -416,7 +483,11 @@ export default function ScatterGallery() {
         // Fade out scroll hint (no React setState — direct DOM)
         if (!state.hintHidden && scrollHintRef.current && progress > 0.02) {
           state.hintHidden = true;
-          gsap.to(scrollHintRef.current, { opacity: 0, duration: 0.4, ease: "power2.out" });
+          gsap.to(scrollHintRef.current, {
+            opacity: 0,
+            duration: 0.4,
+            ease: "power2.out",
+          });
         }
 
         if (progress <= introRatio) {
@@ -435,7 +506,8 @@ export default function ScatterGallery() {
           // Cards animation — use quickSetters and pre-computed statics
           const cx = vw / 2;
           const cy = vh / 2;
-          const spreadDistMax = Math.min(vw, vh) * (vw <= 480 ? 0.38 : vw <= 768 ? 0.32 : 0.25);
+          const spreadDistMax =
+            Math.min(vw, vh) * (vw <= 480 ? 0.38 : vw <= 768 ? 0.32 : 0.25);
 
           for (let i = 0; i < introCards.length; i++) {
             const card = introCards[i];
@@ -453,8 +525,10 @@ export default function ScatterGallery() {
               const spreadP = (introProgress - 0.35) / 0.35;
               const eased = 1 - (1 - spreadP) * (1 - spreadP); // quadratic ease-out
               const spreadDist = eased * spreadDistMax;
-              const spreadX = cx + s.cosAngle * spreadDist - CONFIG.cardWidth / 2;
-              const spreadY = cy + s.sinAngle * spreadDist - CONFIG.cardHeight / 2;
+              const spreadX =
+                cx + s.cosAngle * spreadDist - CONFIG.cardWidth / 2;
+              const spreadY =
+                cy + s.sinAngle * spreadDist - CONFIG.cardHeight / 2;
               const spreadRot = s.stackRot + eased * ((s.isEven ? 1 : -1) * 15);
 
               setter.x(lerp(s.stackX, spreadX, eased));
@@ -465,8 +539,10 @@ export default function ScatterGallery() {
             } else {
               const flyP = (introProgress - 0.7) / 0.3;
               const eased = 1 - (1 - flyP) * (1 - flyP) * (1 - flyP); // cubic ease-out
-              const spreadX = cx + s.cosAngle * spreadDistMax - CONFIG.cardWidth / 2;
-              const spreadY = cy + s.sinAngle * spreadDistMax - CONFIG.cardHeight / 2;
+              const spreadX =
+                cx + s.cosAngle * spreadDistMax - CONFIG.cardWidth / 2;
+              const spreadY =
+                cy + s.sinAngle * spreadDistMax - CONFIG.cardHeight / 2;
               const spreadRot = s.stackRot + (s.isEven ? 1 : -1) * 15;
 
               setter.x(lerp(spreadX, card.targetX, eased));
@@ -489,7 +565,10 @@ export default function ScatterGallery() {
           if (state.introComplete) {
             state.introComplete = false;
             state.currentSection = -1;
-            if (activeMasterTl) { activeMasterTl.kill(); activeMasterTl = null; }
+            if (activeMasterTl) {
+              activeMasterTl.kill();
+              activeMasterTl = null;
+            }
             state.isAnimating = false;
 
             // Kill idle tweens
@@ -504,7 +583,11 @@ export default function ScatterGallery() {
             introCards.forEach(({ element }) => {
               gsap.killTweensOf(element);
               if (!element.parentNode) cardsContainer.appendChild(element);
-              gsap.set(element, { display: "block", opacity: 1, force3D: true });
+              gsap.set(element, {
+                display: "block",
+                opacity: 1,
+                force3D: true,
+              });
             });
           }
         } else {
@@ -516,11 +599,13 @@ export default function ScatterGallery() {
             headingOpacitySetter(0);
             galleryHeading.textContent = HEADINGS[0];
             galleryHeadingOpacitySetter(1);
-            state.activeCards = introCards.map(({ element, targetX, targetY }) => ({
-              element,
-              centerX: targetX + CONFIG.cardWidth / 2,
-              centerY: targetY + CONFIG.cardHeight / 2,
-            }));
+            state.activeCards = introCards.map(
+              ({ element, targetX, targetY }) => ({
+                element,
+                centerX: targetX + CONFIG.cardWidth / 2,
+                centerY: targetY + CONFIG.cardHeight / 2,
+              }),
+            );
             state.currentSection = 0;
             state.isAnimating = false;
           }
@@ -581,14 +666,23 @@ export default function ScatterGallery() {
             state.activeCards.some((ac) => ac.element === ic.element),
           );
           if (introIsActive) {
-            state.activeCards = introCards.map(({ element, targetX, targetY }) => ({
-              element,
-              centerX: targetX + CONFIG.cardWidth / 2,
-              centerY: targetY + CONFIG.cardHeight / 2,
-            }));
-            introCards.forEach(({ element, targetX, targetY, targetRotation }) => {
-              gsap.set(element, { x: targetX, y: targetY, rotation: targetRotation, force3D: true });
-            });
+            state.activeCards = introCards.map(
+              ({ element, targetX, targetY }) => ({
+                element,
+                centerX: targetX + CONFIG.cardWidth / 2,
+                centerY: targetY + CONFIG.cardHeight / 2,
+              }),
+            );
+            introCards.forEach(
+              ({ element, targetX, targetY, targetRotation }) => {
+                gsap.set(element, {
+                  x: targetX,
+                  y: targetY,
+                  rotation: targetRotation,
+                  force3D: true,
+                });
+              },
+            );
           } else {
             state.activeCards.forEach(({ element }) => element.remove());
             state.activeCards = createCards(state.currentSection);
