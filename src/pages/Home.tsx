@@ -10,6 +10,7 @@ import Testimonials from "@/components/sections/Testimonials";
 import CustomOrder from "@/components/sections/CustomOrder";
 import Footer from "@/components/sections/Footer";
 import BookingModal from "@/components/booking/BookingModal";
+import SEOHead from "@/components/layout/SEOHead";
 
 export default function Home() {
   const [bookingOpen, setBookingOpen] = useState(false);
@@ -19,6 +20,7 @@ export default function Home() {
 
   return (
     <>
+      <SEOHead page="home" />
       <Preloader />
       <Navbar />
       <Hero onBookClick={openBooking} />

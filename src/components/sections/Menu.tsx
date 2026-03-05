@@ -1,137 +1,228 @@
-import { useRef, useLayoutEffect } from "react";
+import {
+  useRef,
+  useState,
+  useMemo,
+  useLayoutEffect,
+  useEffect,
+  useCallback,
+} from "react";
 import { Link } from "react-router-dom";
 import gsap from "gsap";
 import ScrollTrigger from "gsap/ScrollTrigger";
-import { cloudinaryUrl } from "@/lib/cloudinaryUrl";
+import { useCakeData } from "@/hooks/useCakeData";
+import { cloudinaryTransformUrl } from "@/lib/cloudinaryUrl";
 
-const MENU_ITEMS = [
-  {
-    title: "Signature Cakes",
-    description: "Layered perfection with buttercream, ganache, and seasonal flavours baked fresh for every occasion.",
-    image: cloudinaryUrl("/Cake%20images/p17/heavenlybakes.by.divya_1676042147_3035183977905671948_5465995859.jpg"),
-    alt: "Signature cake with elegant decoration",
-    icon: "cake",
-  },
-  {
-    title: "Cookies & Macarons",
-    description: "Crisp on the outside, chewy within. Our cookies and French macarons come in rotating seasonal flavours.",
-    image: cloudinaryUrl("/Cake%20images/p15/heavenlybakes.by.divya_1677317331_3045880994187926698_5465995859.jpg"),
-    alt: "Assorted cookies and macarons",
-    icon: "cookie",
-  },
-  {
-    title: "Artisan Bread",
-    description: "Slow-fermented sourdough and rustic loaves made with organic flour and old-world techniques.",
-    image: cloudinaryUrl("/Cake%20images/p100/heavenlybakes.by.divya_1594823711_2353874355811088797_5465995859.jpg"),
-    alt: "Freshly baked artisan bread",
-    icon: "bakery_dining",
-  },
-  {
-    title: "Pastries",
-    description: "Flaky croissants, Danish twists, and buttery puff pastry treats — baked golden every morning.",
-    image: cloudinaryUrl("/Cake%20images/p53/heavenlybakes.by.divya_1628314420_2634814783928814669_5465995859.jpg"),
-    alt: "Assorted freshly baked pastries",
-    icon: "breakfast_dining",
-  },
-  {
-    title: "Custom Celebration Cakes",
-    description: "From birthdays to weddings — tell us your vision and we'll sculpt it in sponge, cream, and fondant.",
-    image: cloudinaryUrl("/Cake%20images/p27/heavenlybakes.by.divya_1653890429_2849361901436936913_5465995859.jpg"),
-    alt: "Custom multi-tiered celebration cake",
-    icon: "celebration",
-    wide: true,
-  },
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+/** Maximum images shown (no load more) */
+const MAX_DISPLAY = 8;
+
+/** Curated keyword chips shown below the search bar */
+const FEATURED_KEYWORDS = [
+  "Wedding",
+  "Car Theme",
+  "Floral",
+  "Birthday",
+  "Forest",
+  "Gold",
+  "Princess",
+  "Fondant",
+  "Chocolate",
+  "Pastel",
 ];
+
+/** Optimised thumbnail – 600px wide, auto format & quality */
+function thumbUrl(fullUrl: string) {
+  return cloudinaryTransformUrl(fullUrl, "w_600,q_auto,f_auto");
+}
+
+/** Full-size lightbox image – 1400px wide */
+function lightboxUrl(fullUrl: string) {
+  return cloudinaryTransformUrl(fullUrl, "w_1400,q_auto,f_auto");
+}
+
+/** Seed-based Fisher–Yates shuffle so random order is stable per session */
+function seededShuffle<T>(arr: T[], seed: number): T[] {
+  const a = [...arr];
+  let s = seed;
+  for (let i = a.length - 1; i > 0; i--) {
+    s = (s * 1664525 + 1013904223) & 0xffffffff;
+    const j = Math.abs(s) % (i + 1);
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// Stable seed per browser session so layout doesn't jump on re-render
+const SESSION_SEED = Math.floor(Math.random() * 1e6);
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+interface LightboxProps {
+  src: string;
+  alt: string;
+  onClose: () => void;
+}
+
+function Lightbox({ src, alt, onClose }: LightboxProps) {
+  // Close on Escape
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  // Lock scroll
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, []);
+
+  return (
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/85 backdrop-blur-sm p-4"
+      onClick={onClose}
+    >
+      <button
+        onClick={onClose}
+        className="absolute top-4 right-4 text-white/70 hover:text-white transition-colors cursor-pointer"
+        aria-label="Close"
+      >
+        <span className="material-icons text-3xl">close</span>
+      </button>
+      <img
+        src={src}
+        alt={alt}
+        className="max-h-[70vh] max-w-[min(500px,85vw)] object-contain rounded-xl shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      />
+    </div>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function Menu() {
   const sectionRef = useRef<HTMLElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const { cakes, loading } = useCakeData();
 
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(
+    null,
+  );
+
+  // After cakes load, refresh ScrollTrigger so ScatterGallery pin position
+  // recalculates correctly (Menu's lazy images change page height after mount).
+  useEffect(() => {
+    if (!loading && cakes.length > 0) {
+      // Small delay lets images render and layout settle first
+      const t = setTimeout(() => ScrollTrigger.refresh(), 400);
+      return () => clearTimeout(t);
+    }
+  }, [loading, cakes.length]);
+
+  // ── Debounce 300 ms ─────────────────────────────────────────────────────
+  useEffect(() => {
+    const t = setTimeout(
+      () => setDebouncedSearch(search.trim().toLowerCase()),
+      300,
+    );
+    return () => clearTimeout(t);
+  }, [search]);
+
+  // ── Keyword chip click → set search ────────────────────────────────────
+  const handleChip = useCallback((kw: string) => {
+    const lower = kw.toLowerCase();
+    setSearch((prev) => (prev.toLowerCase() === lower ? "" : kw));
+  }, []);
+
+  // ── Randomly shuffled cakes (stable per session) ─────────────────────
+  const shuffledCakes = useMemo(
+    () => seededShuffle(cakes, SESSION_SEED),
+    [cakes],
+  );
+
+  // ── Filter against search query ─────────────────────────────────────────
+  const filteredCakes = useMemo(() => {
+    if (!debouncedSearch) return shuffledCakes;
+    const q = debouncedSearch;
+    return shuffledCakes.filter(
+      (c) =>
+        c.title.toLowerCase().includes(q) ||
+        c.description.toLowerCase().includes(q) ||
+        c.tags?.some((t) => t.toLowerCase().includes(q)),
+    );
+  }, [shuffledCakes, debouncedSearch]);
+
+  const displayedCakes = filteredCakes.slice(0, MAX_DISPLAY);
+  const isFiltered = !!debouncedSearch;
+
+  // ── GSAP section reveal ─────────────────────────────────────────────────
   useLayoutEffect(() => {
     const ctx = gsap.context(() => {
-      const mm = gsap.matchMedia();
-
-      mm.add("(min-width: 641px)", () => {
-        // Desktop: Menu cards stagger in
-        gsap.from(".menu-item", {
-          scrollTrigger: {
-            trigger: ".menu-item",
-            start: "top 85%",
-          },
-          y: 40,
-          opacity: 0,
-          duration: 0.7,
-          stagger: 0.15,
-          ease: "power3.out",
-        });
+      gsap.from(".menu-hero-search", {
+        scrollTrigger: { trigger: ".menu-hero-search", start: "top 88%" },
+        y: 40,
+        opacity: 0,
+        duration: 0.9,
+        ease: "power3.out",
       });
-
-      mm.add("(max-width: 640px)", () => {
-        // Mobile: cards slide in alternating left/right
-        gsap.from(".menu-mobile-card", {
-          scrollTrigger: {
-            trigger: ".menu-mobile-card",
-            start: "top 90%",
-          },
-          y: 30,
-          opacity: 0,
-          duration: 0.5,
-          stagger: 0.12,
-          ease: "power3.out",
-        });
-
-        // Featured card scales up
-        gsap.from(".menu-featured-card", {
-          scrollTrigger: {
-            trigger: ".menu-featured-card",
-            start: "top 85%",
-          },
-          scale: 0.92,
-          opacity: 0,
-          duration: 0.6,
-          ease: "power2.out",
-        });
-      });
-
-      // Underline grows
-      gsap.from(".menu-line", {
-        scrollTrigger: {
-          trigger: ".menu-line",
-          start: "top 90%",
-        },
-        scaleX: 0,
-        duration: 0.8,
+      gsap.from(".menu-chips", {
+        scrollTrigger: { trigger: ".menu-chips", start: "top 90%" },
+        y: 20,
+        opacity: 0,
+        duration: 0.7,
+        delay: 0.15,
         ease: "power2.out",
       });
-
-      // CTA button slides up
       gsap.from(".menu-cta-wrap", {
-        scrollTrigger: {
-          trigger: ".menu-cta-wrap",
-          start: "top 90%",
-        },
+        scrollTrigger: { trigger: ".menu-cta-wrap", start: "top 92%" },
         y: 30,
         opacity: 0,
         duration: 0.6,
         ease: "power2.out",
       });
     }, sectionRef);
-
     return () => ctx.revert();
   }, []);
 
-  // Separate featured item (last one) from regular items for mobile
-  const regularItems = MENU_ITEMS.slice(0, -1);
-  const featuredItem = MENU_ITEMS[MENU_ITEMS.length - 1];
+  // ── Animate cards on change ─────────────────────────────────────────────
+  useEffect(() => {
+    if (!gridRef.current || displayedCakes.length === 0) return;
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        ".menu-cake-card",
+        { y: 28, opacity: 0, scale: 0.97 },
+        {
+          y: 0,
+          opacity: 1,
+          scale: 1,
+          duration: 0.45,
+          stagger: 0.05,
+          ease: "power3.out",
+        },
+      );
+    }, gridRef);
+    return () => ctx.revert();
+  }, [displayedCakes]);
 
   return (
-    <section ref={sectionRef} id="menu" className="relative overflow-hidden py-16 md:py-28 px-4 md:px-8 lg:px-12 max-w-7xl mx-auto">
-      {/* Background gradient */}
-      <div className="menu-bg-gradient absolute inset-0 opacity-30" />
-
-      {/* Bakery doodle SVGs — desktop only */}
-      <div className="absolute inset-0 w-full h-full pointer-events-none z-[1] overflow-hidden hidden sm:block">
-        {/* Donut - top-left */}
-        <svg className="absolute top-[5%] left-[3%] w-[110px] opacity-20" viewBox="0 0 100 100" fill="none">
+    <section
+      ref={sectionRef}
+      id="menu"
+      className="relative isolate overflow-hidden py-16 md:py-24 bg-white dark:bg-zinc-950"
+    >
+      {/* Subtle bakery doodles — desktop only */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden hidden sm:block">
+        <svg
+          className="absolute top-[4%] left-[2%] w-[90px] opacity-[0.07]"
+          viewBox="0 0 100 100"
+          fill="none"
+        >
           <path
             d="M50 10 C72 10 90 28 90 50 C90 72 72 90 50 90 C28 90 10 72 10 50 C10 28 28 10 50 10 Z M50 32 C40 32 32 40 32 50 C32 60 40 68 50 68 C60 68 68 60 68 50 C68 40 60 32 50 32 Z"
             stroke="#D97762"
@@ -139,166 +230,205 @@ export default function Menu() {
             strokeLinecap="round"
             strokeLinejoin="round"
           />
-          <path
-            d="M22 38 C24 34 27 31 30 28 M70 28 C73 31 76 35 78 38 M78 62 C76 66 73 69 70 72 M30 72 C27 69 24 66 22 62"
-            stroke="#D97762"
-            strokeWidth="1"
-            strokeLinecap="round"
-          />
         </svg>
-
-        {/* Birthday cake - bottom-right */}
-        <svg className="absolute bottom-[5%] right-[3%] w-[120px] opacity-20" viewBox="0 0 100 120" fill="none">
+        <svg
+          className="absolute bottom-[6%] right-[3%] w-[100px] opacity-[0.07]"
+          viewBox="0 0 100 120"
+          fill="none"
+        >
           <path
-            d="M20 100 L80 100 L80 70 C80 65 75 60 70 60 L30 60 C25 60 20 65 20 70 Z M25 60 L25 50 C25 45 30 40 35 40 L65 40 C70 40 75 45 75 50 L75 60 M35 40 L35 30 M50 40 L50 25 M65 40 L65 30 M35 30 C35 25 37 20 35 18 C33 14 35 10 37 10 C39 10 38 15 40 18 M50 25 C50 20 52 15 50 13 C48 9 50 5 52 5 C54 5 53 10 55 13 M65 30 C65 25 67 20 65 18 C63 14 65 10 67 10 C69 10 68 15 70 18 M20 100 L80 100 L82 110 L18 110 Z"
+            d="M20 100 L80 100 L80 70 C80 65 75 60 70 60 L30 60 C25 60 20 65 20 70 Z M25 60 L25 50 C25 45 30 40 35 40 L65 40 C70 40 75 45 75 50 L75 60 M50 40 L50 25 M50 25 C50 20 52 15 50 13 C48 9 50 5 52 5 C54 5 53 10 55 13 M20 100 L80 100 L82 110 L18 110 Z"
             stroke="#D97762"
             strokeWidth="1.3"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
         </svg>
-
-        {/* Candy cane - top-right */}
-        <svg className="absolute top-[8%] right-[5%] w-[65px] opacity-20 rotate-[15deg]" viewBox="0 0 40 100" fill="none">
-          <path
-            d="M28 15 C28 8 24 3 18 3 C12 3 8 8 8 15 L8 90 M28 15 L28 90 M12 25 L24 30 M12 40 L24 45 M12 55 L24 60 M12 70 L24 75"
-            stroke="#D97762"
-            strokeWidth="1.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-
-        {/* Cherry - bottom-left */}
-        <svg className="absolute bottom-[8%] left-[5%] w-[80px] opacity-20" viewBox="0 0 80 80" fill="none">
-          <path
-            d="M30 50 C30 40 22 32 15 35 C8 38 5 48 10 55 C15 62 28 62 30 50 Z M50 50 C50 40 58 32 65 35 C72 38 75 48 70 55 C65 62 52 62 50 50 Z M30 45 C30 30 35 15 40 10 M50 45 C50 30 45 15 40 10 M40 10 C42 8 48 5 52 8 M40 10 C38 8 32 5 28 8"
-            stroke="#D97762"
-            strokeWidth="1.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
       </div>
 
-      {/* Menu Header */}
-      <div className="reveal-section relative z-10 text-center mb-10 md:mb-20">
-        <p className="font-body text-primary/70 text-sm md:text-base tracking-widest uppercase mb-3">What We Bake</p>
-        <h2 className="font-display text-3xl md:text-5xl lg:text-6xl text-primary leading-tight">
-          <span className="menu-title-text">Our Menu</span>
-        </h2>
-        <div className="menu-line w-16 h-[2px] bg-primary/40 mx-auto mt-4" />
-      </div>
+      <div className="relative z-10 max-w-6xl mx-auto px-4 md:px-8 lg:px-12">
+        {/* ── Section label ─────────────────────────────────────────────── */}
+        <p className="text-center font-body text-primary/60 text-xs md:text-sm tracking-[0.3em] uppercase mb-3">
+          Browse Our Creations
+        </p>
 
-      {/* ===== DESKTOP: Original grid layout ===== */}
-      <div className="reveal-section relative z-10 hidden sm:grid grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-        {MENU_ITEMS.map((item, index) => (
-          <div
-            key={item.title}
-            className={`group menu-item cursor-pointer relative${item.wide ? " sm:col-span-2 lg:col-span-2" : ""}`}
-            data-menu-index={index}
-          >
-            <div className={`menu-img-wrap relative overflow-hidden rounded-xl ${item.wide ? "h-64 md:h-80" : "h-48 md:h-64"}`}>
-              <div className="menu-img-overlay absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-all duration-300 z-10" />
-              <img
-                src={item.image}
-                alt={item.alt}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                loading="lazy"
-              />
-            </div>
-            <div className="menu-text mt-4">
-              <h3 className="font-display text-lg md:text-xl text-primary mb-1">{item.title}</h3>
-              <p className="font-body text-sm md:text-base text-text-light/70 dark:text-text-dark/70 leading-relaxed mb-2">
-                {item.description}
-              </p>
-              <p className="font-body text-xs md:text-sm text-primary/60 italic">
-                DM for pricing <span className="inline-block group-hover:translate-x-1 transition-transform duration-300">&rarr;</span>
-              </p>
-            </div>
-          </div>
-        ))}
-      </div>
+        {/* ── Hero Search ─────────────────────────────────────────────────── */}
+        <div className="menu-hero-search max-w-2xl mx-auto mb-6 md:mb-8">
+          <h2 className="font-display text-3xl md:text-5xl text-primary text-center leading-tight mb-6">
+            Find Your{" "}
+            <span className="italic font-light text-black dark:text-white">
+              perfect cake
+            </span>
+          </h2>
 
-      {/* ===== MOBILE: Card list with image + overlay text ===== */}
-      <div className="relative z-10 sm:hidden flex flex-col gap-4">
-        {/* Regular items — compact horizontal cards */}
-        {regularItems.map((item, index) => (
-          <div
-            key={item.title}
-            className="menu-mobile-card flex gap-4 p-3 rounded-2xl bg-white dark:bg-zinc-800/80 border border-black/5 dark:border-white/8 shadow-sm"
-            data-menu-index={index}
-          >
-            {/* Thumbnail */}
-            <div className="w-24 h-24 shrink-0 rounded-xl overflow-hidden">
-              <img
-                src={item.image}
-                alt={item.alt}
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
-            </div>
-            {/* Text content */}
-            <div className="flex flex-col justify-center min-w-0 flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="material-icons text-primary text-base">{item.icon}</span>
-                <h3 className="font-display text-base text-primary leading-tight">{item.title}</h3>
-              </div>
-              <p className="font-body text-xs text-text-light/60 dark:text-text-dark/60 leading-relaxed line-clamp-2">
-                {item.description}
-              </p>
-              <p className="font-body text-[11px] text-primary/50 mt-1.5">
-                DM for pricing &rarr;
-              </p>
-            </div>
-          </div>
-        ))}
-
-        {/* Featured item — full-width hero card with overlay */}
-        <div className="menu-featured-card relative rounded-2xl overflow-hidden mt-2" data-menu-index={4}>
-          <div className="h-48">
-            <img
-              src={featuredItem.image}
-              alt={featuredItem.alt}
-              className="w-full h-full object-cover"
-              loading="lazy"
+          {/* Search input */}
+          <div className="relative">
+            <span className="material-icons absolute left-4 top-1/2 -translate-y-1/2 text-primary/40 text-xl select-none">
+              search
+            </span>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Try &ldquo;wedding&rdquo;, &ldquo;car theme&rdquo;, &ldquo;gold&rdquo;…"
+              className="w-full pl-12 pr-12 py-4 md:py-5 rounded-2xl border-2 border-primary/20 bg-white dark:bg-zinc-800 font-body text-base md:text-lg text-primary placeholder:text-primary/35 focus:outline-none focus:border-primary/60 shadow-lg shadow-primary/5 transition-all duration-200"
             />
-          </div>
-          {/* Gradient overlay with text */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-          <div className="absolute bottom-0 left-0 right-0 p-5">
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="material-icons text-white/90 text-base">{featuredItem.icon}</span>
-              <h3 className="font-display text-lg text-white leading-tight">{featuredItem.title}</h3>
-            </div>
-            <p className="font-body text-xs text-white/75 leading-relaxed">
-              {featuredItem.description}
-            </p>
-            <p className="font-body text-[11px] text-white/50 mt-2">
-              DM for pricing &rarr;
-            </p>
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-primary/40 hover:text-primary transition-colors cursor-pointer"
+                aria-label="Clear search"
+              >
+                <span className="material-icons text-xl">close</span>
+              </button>
+            )}
           </div>
         </div>
+
+        {/* ── Keyword Chips ───────────────────────────────────────────────── */}
+        <div className="menu-chips flex flex-wrap justify-center gap-2 md:gap-2.5 mb-10 md:mb-14">
+          {FEATURED_KEYWORDS.map((kw) => {
+            const active = search.toLowerCase() === kw.toLowerCase();
+            return (
+              <button
+                key={kw}
+                onClick={() => handleChip(kw)}
+                className={`px-4 md:px-5 py-2 md:py-2.5 rounded-full text-sm md:text-base font-body capitalize transition-all duration-200 cursor-pointer border ${
+                  active
+                    ? "bg-primary text-white border-primary shadow-md shadow-primary/20 scale-105"
+                    : "bg-white dark:bg-zinc-800 text-primary/70 border-primary/20 hover:border-primary/50 hover:bg-primary/5"
+                }`}
+              >
+                {kw}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* ── Loading ─────────────────────────────────────────────────────── */}
+        {loading && (
+          <div className="text-center py-20">
+            <div className="inline-block w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          </div>
+        )}
+
+        {/* ── No Results ──────────────────────────────────────────────────── */}
+        {!loading && filteredCakes.length === 0 && (
+          <div className="text-center py-20">
+            <span className="material-icons text-5xl text-primary/20 mb-4 block">
+              search_off
+            </span>
+            <p className="font-body text-primary/50 text-base">
+              No cakes match{" "}
+              <span className="font-semibold text-primary/70">
+                "{debouncedSearch}"
+              </span>
+              .
+              <br />
+              Try a different keyword or clear the search.
+            </p>
+            <button
+              onClick={() => setSearch("")}
+              className="mt-4 px-6 py-2 rounded-full border border-primary/30 text-primary text-sm font-body hover:bg-primary/5 transition-colors cursor-pointer"
+            >
+              Clear search
+            </button>
+          </div>
+        )}
+
+        {/* ── Image Grid ──────────────────────────────────────────────────── */}
+        {!loading && displayedCakes.length > 0 && (
+          <>
+            {/* Results count when filtered */}
+            {isFiltered && (
+              <p className="text-center font-body text-xs text-primary/40 mb-5">
+                {filteredCakes.length}{" "}
+                {filteredCakes.length === 1 ? "result" : "results"} for &ldquo;
+                {debouncedSearch}&rdquo;
+              </p>
+            )}
+
+            <div
+              ref={gridRef}
+              className="columns-2 sm:columns-3 lg:columns-4 gap-3 md:gap-4 [column-fill:balance]"
+            >
+              {displayedCakes.map((cake) => (
+                <div
+                  key={cake.id}
+                  className="menu-cake-card break-inside-avoid mb-3 md:mb-4 group cursor-pointer"
+                  onClick={() =>
+                    setLightbox({ src: lightboxUrl(cake.src), alt: cake.alt })
+                  }
+                >
+                  <div className="relative overflow-hidden rounded-xl">
+                    {/* Hover overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10" />
+
+                    <img
+                      src={thumbUrl(cake.src)}
+                      alt={cake.alt}
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+
+                    {/* Expand icon on hover */}
+                    <div className="absolute inset-0 flex items-center justify-center z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <div className="bg-white/20 backdrop-blur-sm rounded-full p-2">
+                        <span className="material-icons text-white text-2xl">
+                          zoom_in
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Tags pill at bottom on hover */}
+                    {cake.tags && cake.tags.length > 0 && (
+                      <div className="absolute bottom-2 left-2 right-2 z-20 flex flex-wrap gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        {cake.tags.slice(0, 2).map((tag) => (
+                          <span
+                            key={tag}
+                            className="px-2 py-0.5 bg-white/90 rounded-full text-[10px] font-body text-primary/80 capitalize"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* ── Portfolio CTA ───────────────────────────────────────────────── */}
+        {!loading && (
+          <div className="menu-cta-wrap text-center mt-12 md:mt-20">
+            <Link to="/portfolio">
+              <button className="hidden sm:inline-flex relative px-10 py-4 font-display italic text-primary border-2 border-primary rounded-full overflow-hidden group cursor-pointer transition-colors hover:text-white">
+                <span className="absolute inset-0 bg-primary scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
+                <span className="relative z-10 inline-flex items-center gap-2">
+                  <span className="material-icons text-lg">collections</span>
+                  View Full Portfolio
+                </span>
+              </button>
+              <button className="sm:hidden w-full py-3.5 bg-primary text-white font-display text-sm rounded-full inline-flex items-center justify-center gap-2 cursor-pointer active:scale-[0.97] transition-transform">
+                <span className="material-icons text-base">collections</span>
+                View Full Portfolio
+              </button>
+            </Link>
+          </div>
+        )}
       </div>
 
-      {/* Portfolio CTA */}
-      <div className="menu-cta-wrap reveal-section relative z-10 text-center mt-10 md:mt-20">
-        <Link to="/portfolio">
-          {/* Desktop: hover-fill button */}
-          <button className="menu-cta hidden sm:inline-flex relative px-10 py-4 font-display italic text-primary border-2 border-primary rounded-full overflow-hidden group cursor-pointer transition-colors hover:text-white">
-            <span className="absolute inset-0 bg-primary scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
-            <span className="relative z-10 inline-flex items-center gap-2">
-              <span className="material-icons text-lg">collections</span>
-              View Full Portfolio
-            </span>
-          </button>
-          {/* Mobile: solid pill button, no hover effect */}
-          <button className="menu-cta sm:hidden w-full py-3.5 bg-primary text-white font-display text-sm rounded-full inline-flex items-center justify-center gap-2 cursor-pointer active:scale-[0.97] transition-transform">
-            <span className="material-icons text-base">collections</span>
-            View Full Portfolio
-          </button>
-        </Link>
-      </div>
+      {/* ── Lightbox ─────────────────────────────────────────────────────── */}
+      {lightbox && (
+        <Lightbox
+          src={lightbox.src}
+          alt={lightbox.alt}
+          onClose={() => setLightbox(null)}
+        />
+      )}
     </section>
   );
 }

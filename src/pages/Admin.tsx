@@ -23,6 +23,7 @@ import LoginScreen from "@/components/admin/LoginScreen";
 import AdminCakeCard from "@/components/admin/AdminCakeCard";
 import CakeFormModal from "@/components/admin/CakeFormModal";
 import DeleteConfirmModal from "@/components/admin/DeleteConfirmModal";
+import OrdersPanel from "@/components/admin/OrdersPanel";
 
 const PAGE_SIZE = 12;
 
@@ -37,9 +38,12 @@ interface FirestoreCake {
   [key: string]: unknown;
 }
 
+type AdminTab = "cakes" | "orders";
+
 export default function Admin() {
   const [user, setUser] = useState<unknown>(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [activeTab, setActiveTab] = useState<AdminTab>("cakes");
   const [cakes, setCakes] = useState<FirestoreCake[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
@@ -167,6 +171,7 @@ export default function Admin() {
     title: string;
     description: string;
     images: string[];
+    tags: string[];
     isEdit: boolean;
     id?: string;
   }) => {
@@ -176,6 +181,7 @@ export default function Admin() {
       description: data.description,
       src: data.images[0],
       images: data.images,
+      tags: data.tags,
       alt,
       updatedAt: serverTimestamp(),
     };
@@ -256,73 +262,124 @@ export default function Admin() {
           <span className="material-icons">photo_library</span>
           <span>{totalCount}</span> Total Cakes
         </div>
-        <button
-          className="btn-primary"
-          onClick={() => {
-            setEditCake(null);
-            setFormOpen(true);
-          }}
-        >
-          <span className="material-icons">add</span>
-          Add New Cake
-        </button>
+        {activeTab === "cakes" && (
+          <button
+            className="btn-primary"
+            onClick={() => {
+              setEditCake(null);
+              setFormOpen(true);
+            }}
+          >
+            <span className="material-icons">add</span>
+            Add New Cake
+          </button>
+        )}
+      </div>
+
+      {/* Tab Navigation */}
+      <div
+        style={{
+          display: "flex",
+          borderBottom: "1px solid #e5e7eb",
+          marginBottom: "24px",
+          gap: "8px",
+        }}
+        className="dark:border-gray-700"
+      >
+        {[
+          { label: "Portfolio", icon: "photo_library", value: "cakes" as const },
+          { label: "Orders", icon: "receipt_long", value: "orders" as const },
+        ].map((tab) => (
+          <button
+            key={tab.value}
+            onClick={() => setActiveTab(tab.value)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "12px 16px",
+              fontSize: "14px",
+              fontWeight: "500",
+              borderBottom: activeTab === tab.value ? "2px solid #d97762" : "none",
+              color: activeTab === tab.value ? "#d97762" : "#6b7280",
+              backgroundColor: "transparent",
+              border: "none",
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+            }}
+            className={
+              activeTab === tab.value
+                ? "text-primary dark:text-primary-light"
+                : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+            }
+          >
+            <span className="material-icons" style={{ fontSize: "20px" }}>
+              {tab.icon}
+            </span>
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {/* Content */}
-      {loading ? (
-        <div className="loading">
-          <div className="spinner" />
-          <p>Loading cakes...</p>
-        </div>
-      ) : cakes.length === 0 ? (
-        <div className="empty-state">
-          <span className="material-icons">cake</span>
-          <p>No cakes yet. Add your first creation!</p>
-        </div>
-      ) : (
-        <>
-          <div className="cake-grid">
-            {cakes.map((cake) => (
-              <AdminCakeCard
-                key={cake.id}
-                cake={cake}
-                onEdit={() => {
-                  setEditCake(cake);
-                  setFormOpen(true);
-                }}
-                onDelete={() => {
-                  setDeleteTarget(cake);
-                  setDeleteOpen(true);
-                }}
-              />
-            ))}
+      {activeTab === "cakes" ? (
+        loading ? (
+          <div className="loading">
+            <div className="spinner" />
+            <p>Loading cakes...</p>
           </div>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="pagination">
-              <button
-                className="btn-ghost"
-                onClick={loadPrevPage}
-                disabled={!hasPrev}
-              >
-                <span className="material-icons">chevron_left</span>
-                Prev
-              </button>
-              <span className="pagination-info">
-                Page {page} of {totalPages}
-              </span>
-              <button
-                className="btn-ghost"
-                onClick={loadNextPage}
-                disabled={!hasNext}
-              >
-                Next
-                <span className="material-icons">chevron_right</span>
-              </button>
+        ) : cakes.length === 0 ? (
+          <div className="empty-state">
+            <span className="material-icons">cake</span>
+            <p>No cakes yet. Add your first creation!</p>
+          </div>
+        ) : (
+          <>
+            <div className="cake-grid">
+              {cakes.map((cake) => (
+                <AdminCakeCard
+                  key={cake.id}
+                  cake={cake}
+                  onEdit={() => {
+                    setEditCake(cake);
+                    setFormOpen(true);
+                  }}
+                  onDelete={() => {
+                    setDeleteTarget(cake);
+                    setDeleteOpen(true);
+                  }}
+                />
+              ))}
             </div>
-          )}
-        </>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="pagination">
+                <button
+                  className="btn-ghost"
+                  onClick={loadPrevPage}
+                  disabled={!hasPrev}
+                >
+                  <span className="material-icons">chevron_left</span>
+                  Prev
+                </button>
+                <span className="pagination-info">
+                  Page {page} of {totalPages}
+                </span>
+                <button
+                  className="btn-ghost"
+                  onClick={loadNextPage}
+                  disabled={!hasNext}
+                >
+                  Next
+                  <span className="material-icons">chevron_right</span>
+                </button>
+              </div>
+            )}
+          </>
+        )
+      ) : (
+        <OrdersPanel />
       )}
 
       {/* Add/Edit Modal */}
@@ -335,6 +392,7 @@ export default function Admin() {
                 title: editCake.title,
                 description: editCake.description || "",
                 images: editCake.images || (editCake.src ? [editCake.src] : []),
+                tags: (editCake as Record<string, unknown>).tags as string[] | undefined,
               }
             : null
         }

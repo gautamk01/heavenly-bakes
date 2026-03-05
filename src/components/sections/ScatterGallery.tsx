@@ -211,6 +211,7 @@ export default function ScatterGallery() {
         end: () => `+=${vh * SCROLL_VH}`,
         pin: true,
         pinSpacing: true,
+        anticipatePin: 1,
         animation: tween,
         scrub: 1.5,
         fastScrollEnd: true,
@@ -652,6 +653,7 @@ export default function ScatterGallery() {
       end: () => `+=${vh * totalScrollVH}`,
       pin: true,
       pinSpacing: true,
+      anticipatePin: 1,
       fastScrollEnd: true,
       onUpdate: ({ progress }) => {
         // Fade out scroll hint

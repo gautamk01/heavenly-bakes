@@ -5,4 +5,5 @@ export interface CakeData {
   src: string;
   images: string[];
   alt: string;
+  tags?: string[];
 }

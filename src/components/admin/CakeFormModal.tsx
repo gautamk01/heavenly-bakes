@@ -15,6 +15,7 @@ interface CakeFormData {
   title: string;
   description: string;
   images: string[];
+  tags?: string[];
 }
 
 interface CakeFormModalProps {
@@ -25,6 +26,7 @@ interface CakeFormModalProps {
     title: string;
     description: string;
     images: string[];
+    tags: string[];
     isEdit: boolean;
     id?: string;
   }) => Promise<void>;
@@ -38,6 +40,8 @@ export default function CakeFormModal({
 }: CakeFormModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [error, setError] = useState("");
@@ -58,11 +62,15 @@ export default function CakeFormModal({
       if (editData) {
         setTitle(editData.title);
         setDescription(editData.description);
+        setTags(editData.tags ? [...editData.tags] : []);
+        setTagInput("");
         setExistingImages([...editData.images]);
         setSelectedFiles([]);
       } else {
         setTitle("");
         setDescription("");
+        setTags([]);
+        setTagInput("");
         setExistingImages([]);
         setSelectedFiles([]);
       }
@@ -194,6 +202,7 @@ export default function CakeFormModal({
         title: title.trim(),
         description: description.trim(),
         images: allImages,
+        tags,
         isEdit,
         id: editData?.id,
       });
@@ -242,6 +251,58 @@ export default function CakeFormModal({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
+          </div>
+
+          {/* Tags */}
+          <div className="form-group">
+            <label htmlFor="cake-tags">
+              Tags{" "}
+              <span className="label-hint">
+                (Press Enter or comma to add)
+              </span>
+            </label>
+            <div className="tags-input-wrap" style={{ display: "flex", flexWrap: "wrap", gap: "6px", padding: "8px", border: "1px solid var(--border, #e0d6ce)", borderRadius: "8px", minHeight: "42px", alignItems: "center" }}>
+              {tags.map((tag, i) => (
+                <span
+                  key={i}
+                  style={{ display: "inline-flex", alignItems: "center", gap: "4px", padding: "2px 10px", background: "var(--primary-light, #f5ebe4)", borderRadius: "20px", fontSize: "13px", color: "var(--primary, #6b4f3a)" }}
+                >
+                  {tag}
+                  <button
+                    type="button"
+                    onClick={() => setTags((prev) => prev.filter((_, idx) => idx !== i))}
+                    style={{ background: "none", border: "none", cursor: "pointer", padding: "0 2px", fontSize: "14px", color: "inherit", lineHeight: 1 }}
+                  >
+                    &times;
+                  </button>
+                </span>
+              ))}
+              <input
+                type="text"
+                id="cake-tags"
+                placeholder={tags.length === 0 ? "e.g. car theme, gold, wedding" : ""}
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === ",") {
+                    e.preventDefault();
+                    const val = tagInput.trim().replace(/,$/, "").trim().toLowerCase();
+                    if (val && !tags.includes(val)) {
+                      setTags((prev) => [...prev, val]);
+                    }
+                    setTagInput("");
+                  }
+                }}
+                onBlur={() => {
+                  const val = tagInput.trim().replace(/,$/, "").trim().toLowerCase();
+                  if (val && !tags.includes(val)) {
+                    setTags((prev) => [...prev, val]);
+                  }
+                  setTagInput("");
+                }}
+                style={{ flex: 1, minWidth: "120px", border: "none", outline: "none", background: "transparent", fontSize: "14px" }}
+              />
+            </div>
           </div>
 
           {/* Image Upload */}

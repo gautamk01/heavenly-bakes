@@ -56,7 +56,7 @@ export default function Hero({ onBookClick }: { onBookClick?: () => void }) {
       const isMobile = window.matchMedia("(max-width: 767px)").matches;
 
       // --- Content SplitTexts ---
-      const headlineEl = sectionRef.current?.querySelector("main h2");
+      const headlineEl = sectionRef.current?.querySelector("main h1");
       const subtextEl = sectionRef.current?.querySelector("main p");
 
       const headlineSplit = headlineEl
@@ -145,7 +145,7 @@ export default function Hero({ onBookClick }: { onBookClick?: () => void }) {
                 duration: isDesktop ? 1 : 0.8,
                 ease: "power4.out",
                 onComplete: () => {
-                  document.querySelectorAll("main h2 .char").forEach((el) => {
+                  document.querySelectorAll("main h1 .char").forEach((el) => {
                     if (el.parentElement)
                       el.parentElement.style.overflow = "visible";
                   });
@@ -190,7 +190,7 @@ export default function Hero({ onBookClick }: { onBookClick?: () => void }) {
         // Return visit: content already visible
         gsap.set(".hero-text-content", { opacity: 1 });
         gsap.delayedCall(0.1, () => {
-          document.querySelectorAll("main h2 .char").forEach((el) => {
+          document.querySelectorAll("main h1 .char").forEach((el) => {
             if (el.parentElement) el.parentElement.style.overflow = "visible";
           });
         });
@@ -534,13 +534,13 @@ export default function Hero({ onBookClick }: { onBookClick?: () => void }) {
           className="hero-text-content relative z-20 w-full md:w-[45%] text-center md:text-left flex-shrink-0 pt-2 md:pt-0"
           style={{ opacity: 0 }}
         >
-          <h2 className="font-display text-[clamp(1.8rem,6vw,2.75rem)] md:text-5xl lg:text-6xl xl:text-7xl leading-[1.15] md:leading-[1.1] text-primary mb-4 md:mb-8">
+          <h1 className="font-display text-[clamp(1.8rem,6vw,2.75rem)] md:text-5xl lg:text-6xl xl:text-7xl leading-[1.15] md:leading-[1.1] text-primary mb-4 md:mb-8">
             They are baked <br className="hidden md:inline" />
             <span className="italic font-light text-black dark:text-white">
               especially
             </span>{" "}
             <span className="whitespace-nowrap">for you</span>
-          </h2>
+          </h1>
           <p className="font-body text-base md:text-lg lg:text-xl text-text-light/80 dark:text-text-dark/80 max-w-md mb-5 md:mb-10 mx-auto md:mx-0 leading-relaxed">
             Handcrafted daily with organic flour and patience. Experience the
             crunch that tells a story of tradition.

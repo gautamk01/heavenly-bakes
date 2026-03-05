@@ -1,5 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import gsap from "gsap";
+import { setDoc, doc, serverTimestamp, arrayUnion } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { generateOrderId } from "@/lib/orderId";
+import type { CreateOrderPayload } from "@/types/order";
+import emailjs from "@emailjs/browser";
 
 interface BookingModalProps {
   open: boolean;
@@ -10,6 +15,7 @@ interface FormData {
   date: string;
   time: string;
   name: string;
+  email: string;
   phone: string;
   flavour: string;
   weight: string;
@@ -25,6 +31,7 @@ const INITIAL_FORM: FormData = {
   date: "",
   time: "",
   name: "",
+  email: "",
   phone: "",
   flavour: "",
   weight: "",
@@ -55,6 +62,9 @@ export default function BookingModal({ open, onClose }: BookingModalProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormData>(INITIAL_FORM);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [generatedOrderId, setGeneratedOrderId] = useState("");
 
   const overlayRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -142,7 +152,7 @@ export default function BookingModal({ open, onClose }: BookingModalProps) {
 
     let valid = true;
     const requiredMap: Record<number, (keyof FormData)[]> = {
-      1: ["date", "time", "name", "phone"],
+      1: ["date", "time", "name", "email", "phone"],
       2: ["flavour", "weight"],
       3: [],
     };
@@ -207,38 +217,96 @@ export default function BookingModal({ open, onClose }: BookingModalProps) {
     if (currentStep > 1) goToStep(currentStep - 1);
   };
 
-  const handleSubmit = () => {
-    const lines = [
-      `*New Cake Booking*`,
-      ``,
-      `*Date:* ${formData.date}`,
-      `*Time:* ${formData.time}`,
-      `*Name:* ${formData.name}`,
-      `*Phone:* ${formData.phone}`,
-      ``,
-      `*Flavour:* ${formData.flavour}`,
-      `*Weight:* ${formData.weight}`,
-      formData.candles ? `*Candles:* ${formData.candles}` : "",
-      formData.message ? `*Message on Cake:* ${formData.message}` : "",
-      `*Eggless:* ${formData.eggless ? "Yes" : "No"}`,
-      ``,
-      `*Delivery:* ${formData.delivery === "deliver" ? "Delivery" : "Pickup"}`,
-      formData.delivery === "deliver" && formData.address
-        ? `*Address:* ${formData.address}`
-        : "",
-      formData.specs ? `*Special Instructions:* ${formData.specs}` : "",
-    ]
-      .filter(Boolean)
-      .join("\n");
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    setSubmitError("");
 
-    const encoded = encodeURIComponent(lines);
-    const whatsappUrl = `https://wa.me/?text=${encoded}`;
+    try {
+      const orderId = generateOrderId();
 
-    setShowSuccess(true);
+      // 1. Create order payload for Firestore
+      const payload: CreateOrderPayload = {
+        orderId,
+        customerName: formData.name,
+        customerEmail: formData.email,
+        customerPhone: formData.phone,
+        flavour: formData.flavour,
+        weight: formData.weight,
+        candles: formData.candles,
+        messageOnCake: formData.message,
+        eggless: formData.eggless,
+        deliveryType: formData.delivery,
+        deliveryAddress: formData.address,
+        specialInstructions: formData.specs,
+        requestedDate: formData.date,
+        requestedTime: formData.time,
+      };
 
-    setTimeout(() => {
-      window.open(whatsappUrl, "_blank");
-    }, 1500);
+      // 2. Write to Firestore
+      await setDoc(doc(db, "orders", orderId), {
+        ...payload,
+        status: "pending",
+        statusHistory: [],
+        productionTimeline: null,
+        progressPhotos: [],
+        adminNotes: "",
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+
+      // 3. Send email via EmailJS (client-side)
+      try {
+        const trackingUrl = `${import.meta.env.VITE_APP_URL || "https://heavenlybakes.vercel.app"}/track?id=${orderId}`;
+        const cakeSummary = `${formData.weight} ${formData.flavour} Cake${formData.eggless ? " (Eggless)" : ""}`;
+        const deliveryInfo =
+          formData.delivery === "deliver"
+            ? `Delivery to: ${formData.address}`
+            : "Pickup";
+
+        await emailjs.send(
+          import.meta.env.VITE_EMAILJS_SERVICE_ID,
+          import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+          {
+            to_email: formData.email,
+            order_id: orderId,
+            customer_name: formData.name,
+            cake_summary: cakeSummary,
+            requested_date: formData.date,
+            requested_time: formData.time,
+            delivery_type: deliveryInfo,
+            tracking_url: trackingUrl,
+          },
+          import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+        );
+      } catch (emailErr) {
+        console.error("Email sending failed:", emailErr);
+        // Don't fail the entire submission if email fails
+      }
+
+      // 4. Trigger Cloud Function for Telegram notification (fire and forget)
+      fetch(
+        (import.meta.env.VITE_CLOUD_FUNCTION_URL || "") + "/onOrderCreated",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId }),
+        }
+      ).catch(() => {
+        console.error("Cloud function call failed");
+        // Silent fail — notification is nice-to-have
+      });
+
+      // 5. Show success with order ID
+      setGeneratedOrderId(orderId);
+      setShowSuccess(true);
+    } catch (err) {
+      console.error("Order submission failed:", err);
+      setSubmitError(
+        "Could not submit your order. Please try again or contact us on Instagram."
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleClose = () => {
@@ -381,7 +449,7 @@ export default function BookingModal({ open, onClose }: BookingModalProps) {
         {/* Form content */}
         <div className="flex-1 overflow-y-auto px-6 pb-6">
           {showSuccess ? (
-            <SuccessState />
+            <SuccessState orderId={generatedOrderId} email={formData.email} />
           ) : (
             <div ref={fieldsRef}>
               {currentStep === 1 && (
@@ -399,23 +467,36 @@ export default function BookingModal({ open, onClose }: BookingModalProps) {
 
         {/* Nav buttons */}
         {!showSuccess && (
-          <div className="px-6 pb-6 pt-2 flex items-center justify-between gap-3 border-t border-gray-100 dark:border-gray-700">
-            {currentStep > 1 ? (
-              <button
-                onClick={handleBack}
-                className="px-5 py-2.5 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-              >
-                Back
-              </button>
-            ) : (
-              <div />
+          <div className="px-6 pb-6 pt-2 flex flex-col gap-3 border-t border-gray-100 dark:border-gray-700">
+            {submitError && (
+              <div className="px-4 py-2 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm">
+                {submitError}
+              </div>
             )}
-            <button
-              onClick={handleNext}
-              className="px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-primary hover:bg-primary-dark transition-colors shadow-lg shadow-primary/25"
-            >
-              {currentStep === 3 ? "Send Booking" : "Next"}
-            </button>
+            <div className="flex items-center justify-between gap-3">
+              {currentStep > 1 ? (
+                <button
+                  onClick={handleBack}
+                  disabled={submitting}
+                  className="px-5 py-2.5 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+                >
+                  Back
+                </button>
+              ) : (
+                <div />
+              )}
+              <button
+                onClick={handleNext}
+                disabled={submitting}
+                className="px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-primary hover:bg-primary-dark transition-colors shadow-lg shadow-primary/25 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {currentStep === 3
+                  ? submitting
+                    ? "Confirming..."
+                    : "Confirm Order"
+                  : "Next"}
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -465,6 +546,18 @@ function StepWhen({
           placeholder="Your full name"
           value={formData.name}
           onChange={(e) => updateField("name", e.target.value)}
+          className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition"
+        />
+      </div>
+      <div className="form-field" data-field="email">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          Email <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="email"
+          placeholder="your@email.com"
+          value={formData.email}
+          onChange={(e) => updateField("email", e.target.value)}
           className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition"
         />
       </div>
@@ -678,7 +771,7 @@ function StepHow({
 
 /* ─── Success State ─── */
 
-function SuccessState() {
+function SuccessState({ orderId, email }: { orderId: string; email: string }) {
   const checkRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -697,11 +790,17 @@ function SuccessState() {
     );
   }, []);
 
+  const copyOrderId = () => {
+    navigator.clipboard.writeText(orderId);
+  };
+
+  const trackingUrl = `${import.meta.env.VITE_APP_URL || "https://heavenlybakes.vercel.app"}/track?id=${orderId}`;
+
   return (
-    <div className="flex flex-col items-center justify-center py-10 text-center">
+    <div className="flex flex-col items-center justify-center py-8 text-center space-y-4">
       <div
         ref={checkRef}
-        className="w-20 h-20 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-6"
+        className="w-20 h-20 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center"
       >
         <svg
           className="w-10 h-10 text-green-500"
@@ -715,13 +814,49 @@ function SuccessState() {
           <path d="M5 13l4 4L19 7" />
         </svg>
       </div>
-      <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-        Booking Sent!
-      </h3>
-      <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs">
-        Your cake order details have been sent via WhatsApp. We will confirm
-        your booking shortly!
-      </p>
+
+      <div>
+        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
+          Order Confirmed!
+        </h3>
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          Check your email at <span className="font-medium">{email}</span> for
+          details and contact information
+        </p>
+      </div>
+
+      <div className="w-full max-w-sm px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600">
+        <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+          Your Order ID
+        </p>
+        <button
+          onClick={copyOrderId}
+          className="w-full px-3 py-2 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 font-mono font-bold text-gray-900 dark:text-white text-sm hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+        >
+          {orderId}
+        </button>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          Click to copy
+        </p>
+      </div>
+
+      <a
+        href={trackingUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary-dark transition-colors"
+      >
+        <span>Track Your Order</span>
+        <svg
+          className="w-4 h-4"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          viewBox="0 0 24 24"
+        >
+          <path d="M10 6H6v12h12v-4M14 4l6 6m0 0l-6 6" />
+        </svg>
+      </a>
     </div>
   );
 }

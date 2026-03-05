@@ -99,12 +99,12 @@ export default function About() {
           <p className="text-xs uppercase tracking-[0.3em] text-primary font-medium mb-4">
             Our Story
           </p>
-          <h3 className="font-display text-3xl md:text-5xl leading-tight text-black dark:text-white mb-6">
+          <h2 className="font-display text-3xl md:text-5xl leading-tight text-black dark:text-white mb-6">
             From a small kitchen, <br />
             <span className="italic font-light text-primary">
               with big love
             </span>
-          </h3>
+          </h2>
           <p className="font-body text-text-light/70 dark:text-text-dark/70 leading-relaxed mb-6">
             What started as a passion for baking in a home kitchen has grown
             into something truly special. Every loaf of bread, every layer of
@@ -122,7 +122,9 @@ export default function About() {
         <div className="reveal-section order-1 md:order-2">
           <div className="relative">
             <img
-              src={cloudinaryUrl("/Cake%20images/p35/heavenlybakes.by.divya_1644635390_2771725002020842980_5465995859.jpg")}
+              src={cloudinaryUrl(
+                "/Cake%20images/p35/heavenlybakes.by.divya_1644635390_2771725002020842980_5465995859.jpg",
+              )}
               alt="Elegant Black Forest cake with buttercream piped flowers"
               className="about-image w-full h-auto rounded-2xl shadow-xl object-cover"
               loading="lazy"

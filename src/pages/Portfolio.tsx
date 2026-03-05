@@ -4,6 +4,7 @@ import { useCakeData } from "@/hooks/useCakeData";
 import { gsap, ScrollTrigger } from "@/lib/gsap";
 import PortfolioCard from "@/components/portfolio/PortfolioCard";
 import Lightbox from "@/components/portfolio/Lightbox";
+import SEOHead from "@/components/layout/SEOHead";
 import type { CakeData } from "@/types/cake";
 
 const BATCH_SIZE = 18;
@@ -84,6 +85,7 @@ export default function Portfolio() {
 
   return (
     <div className="portfolio-page">
+      <SEOHead page="portfolio" />
       {/* Fixed back arrow — always visible */}
       <Link to="/" className="portfolio-back-arrow" aria-label="Back to Home">
         <svg
@@ -199,7 +201,7 @@ export default function Portfolio() {
       {/* Portfolio-specific Footer (matches p5 reference) */}
       <footer>
         <div className="footer-content">
-          <h1>Heavenly Bakes</h1>
+          <h2 className="footer-content-heading">Heavenly Bakes</h2>
           <p className="footer-tagline">by divya</p>
           <Link to="/" className="back-link">
             ← Back to Home
