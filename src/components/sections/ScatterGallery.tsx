@@ -414,7 +414,7 @@ export default function ScatterGallery() {
         rotation: stackRotation,
         scale: 1 - i * 0.015,
         zIndex: introCardCount - i,
-        opacity: 1,
+        opacity: 0,
         force3D: true,
       });
 
@@ -465,6 +465,10 @@ export default function ScatterGallery() {
     });
 
     gsap.set(galleryHeading, { opacity: 0 });
+    if (introHeading) gsap.set(introHeading, { opacity: 0 });
+
+    // Hide entire section until pin starts — prevents it showing while scrolling Menu
+    gsap.set(gallery, { visibility: "hidden" });
 
     // ---- SCATTER GALLERY CARDS ----
     function createCards(setIndex: number) {
@@ -655,6 +659,18 @@ export default function ScatterGallery() {
       pinSpacing: true,
       anticipatePin: 1,
       fastScrollEnd: true,
+      onEnter: () => {
+        gsap.set(gallery, { visibility: "visible", opacity: 1 });
+      },
+      onLeave: () => {
+        gsap.set(gallery, { visibility: "hidden" });
+      },
+      onEnterBack: () => {
+        gsap.set(gallery, { visibility: "visible", opacity: 1 });
+      },
+      onLeaveBack: () => {
+        gsap.set(gallery, { visibility: "hidden" });
+      },
       onUpdate: ({ progress }) => {
         // Fade out scroll hint
         if (!state.hintHidden && scrollHintRef.current && progress > 0.02) {
@@ -683,6 +699,7 @@ export default function ScatterGallery() {
           const cx = vw / 2;
           const cy = vh / 2;
           const spreadDistMax = Math.min(vw, vh) * 0.25;
+          const entryFade = introProgress < 0.08 ? introProgress / 0.08 : 1;
 
           for (let i = 0; i < introCards.length; i++) {
             const card = introCards[i];
@@ -695,7 +712,7 @@ export default function ScatterGallery() {
               setter.y(s.stackY + breathe);
               setter.rotation(s.stackRot);
               setter.scale(s.stackScale);
-              setter.opacity(1);
+              setter.opacity(entryFade);
             } else if (introProgress < 0.7) {
               const spreadP = (introProgress - 0.35) / 0.35;
               const eased = 1 - (1 - spreadP) * (1 - spreadP);
@@ -710,7 +727,7 @@ export default function ScatterGallery() {
               setter.y(lerp(s.stackY, spreadY, eased));
               setter.rotation(spreadRot);
               setter.scale(lerp(s.stackScale, 1, eased));
-              setter.opacity(1);
+              setter.opacity(entryFade);
             } else {
               const flyP = (introProgress - 0.7) / 0.3;
               const eased = 1 - (1 - flyP) * (1 - flyP) * (1 - flyP);
@@ -724,7 +741,7 @@ export default function ScatterGallery() {
               setter.y(lerp(spreadY, card.targetY, eased));
               setter.rotation(lerp(spreadRot, card.targetRotation, eased));
               setter.scale(1);
-              setter.opacity(1);
+              setter.opacity(entryFade);
             }
           }
 
@@ -786,9 +803,30 @@ export default function ScatterGallery() {
 
           const targetSection = getSectionIndex(scatterProgress);
           transitionToSection(targetSection);
+
+          // Keep cards fully visible through the entire scatter phase — no fade out
+          if (state.introComplete) {
+            state.activeCards.forEach(({ element }) => {
+              gsap.set(element, { opacity: 1 });
+            });
+          }
         }
       },
     });
+
+    // --- Pull next section up to eliminate 100vh gap after unpin ---
+    let nextSectionEl: HTMLElement | null = null;
+    const pullUpNextSection = () => {
+      const spacer = gallery.parentElement;
+      if (spacer) {
+        const next = spacer.nextElementSibling as HTMLElement | null;
+        if (next) {
+          nextSectionEl = next;
+          next.style.marginTop = `-${vh}px`;
+        }
+      }
+    };
+    requestAnimationFrame(pullUpNextSection);
 
     // Resize handler
     let resizeTimer: ReturnType<typeof setTimeout>;
@@ -861,6 +899,7 @@ export default function ScatterGallery() {
           }
         }
         ScrollTrigger.refresh();
+        requestAnimationFrame(pullUpNextSection);
       }, 250);
     };
     window.addEventListener("resize", onResize);
@@ -868,6 +907,7 @@ export default function ScatterGallery() {
     return () => {
       window.removeEventListener("resize", onResize);
       clearTimeout(resizeTimer);
+      if (nextSectionEl) nextSectionEl.style.marginTop = "";
       st.kill();
       if (activeMasterTl) activeMasterTl.kill();
       idleTweens.forEach((t) => t.kill());

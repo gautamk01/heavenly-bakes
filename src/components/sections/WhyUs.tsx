@@ -356,7 +356,7 @@ export default function WhyUs() {
                   className="inline-block border-b border-white/40 pb-0.5 hover:border-white text-sm font-medium transition-colors"
                   to="/portfolio"
                 >
-                  View Portfolio
+                  View Our Creations
                 </Link>
               </div>
               <div className="stat-card bg-primary dark:bg-primary/90 p-7 rounded-xl text-white shadow-lg hover:shadow-xl transition-shadow">
@@ -411,7 +411,7 @@ export default function WhyUs() {
                   className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-white/90"
                   to="/portfolio"
                 >
-                  Portfolio{" "}
+                  Our Creations{" "}
                   <span className="material-icons text-xs">arrow_forward</span>
                 </Link>
               </div>

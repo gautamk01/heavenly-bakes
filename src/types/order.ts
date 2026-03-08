@@ -7,7 +7,8 @@ export type OrderStatus =
   | "decorating"
   | "ready"
   | "delivered"
-  | "cancelled";
+  | "cancelled"
+  | "finished";
 
 export interface StatusHistoryEntry {
   status: OrderStatus;
@@ -34,6 +35,14 @@ export interface ProgressPhoto {
   uploadedAt: Timestamp;
 }
 
+export interface OrderCostItem {
+  name: string;
+  quantity: number;
+  unit: string;
+  pricePerUnit: number;
+  totalCost: number;
+}
+
 export interface Order {
   orderId: string;
   customerName: string;
@@ -54,6 +63,12 @@ export interface Order {
   productionTimeline: ProductionTimeline | null;
   progressPhotos: ProgressPhoto[];
   adminNotes: string;
+  sellingPrice: number | null;
+  paymentStatus: "unpaid" | "paid";
+  paidAt: Timestamp | null;
+  costs: OrderCostItem[];
+  totalCost: number;
+  makingCharge: number;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -84,13 +99,11 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   ready: "Ready",
   delivered: "Delivered",
   cancelled: "Cancelled",
+  finished: "Finished",
 };
 
 export const ORDER_STATUS_PIPELINE: OrderStatus[] = [
   "pending",
   "confirmed",
-  "baking",
-  "decorating",
-  "ready",
-  "delivered",
+  "cancelled",
 ];

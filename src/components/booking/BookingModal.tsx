@@ -250,13 +250,18 @@ export default function BookingModal({ open, onClose }: BookingModalProps) {
         productionTimeline: null,
         progressPhotos: [],
         adminNotes: "",
+        sellingPrice: null,
+        paymentStatus: "unpaid",
+        paidAt: null,
+        costs: [],
+        totalCost: 0,
+        makingCharge: 0,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
 
       // 3. Send email via EmailJS (client-side)
       try {
-        const trackingUrl = `${import.meta.env.VITE_APP_URL || "https://heavenlybakes.vercel.app"}/track?id=${orderId}`;
         const cakeSummary = `${formData.weight} ${formData.flavour} Cake${formData.eggless ? " (Eggless)" : ""}`;
         const deliveryInfo =
           formData.delivery === "deliver"
@@ -274,7 +279,6 @@ export default function BookingModal({ open, onClose }: BookingModalProps) {
             requested_date: formData.date,
             requested_time: formData.time,
             delivery_type: deliveryInfo,
-            tracking_url: trackingUrl,
           },
           import.meta.env.VITE_EMAILJS_PUBLIC_KEY
         );
@@ -341,7 +345,7 @@ export default function BookingModal({ open, onClose }: BookingModalProps) {
       }}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/70" />
 
       {/* Card */}
       <div
@@ -794,8 +798,6 @@ function SuccessState({ orderId, email }: { orderId: string; email: string }) {
     navigator.clipboard.writeText(orderId);
   };
 
-  const trackingUrl = `${import.meta.env.VITE_APP_URL || "https://heavenlybakes.vercel.app"}/track?id=${orderId}`;
-
   return (
     <div className="flex flex-col items-center justify-center py-8 text-center space-y-4">
       <div
@@ -839,24 +841,6 @@ function SuccessState({ orderId, email }: { orderId: string; email: string }) {
           Click to copy
         </p>
       </div>
-
-      <a
-        href={trackingUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary-dark transition-colors"
-      >
-        <span>Track Your Order</span>
-        <svg
-          className="w-4 h-4"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          viewBox="0 0 24 24"
-        >
-          <path d="M10 6H6v12h12v-4M14 4l6 6m0 0l-6 6" />
-        </svg>
-      </a>
     </div>
   );
 }

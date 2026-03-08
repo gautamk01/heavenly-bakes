@@ -4,7 +4,7 @@ import ScrollTrigger from "gsap/ScrollTrigger";
 import { useDarkMode } from "@/hooks/useDarkMode";
 import MobileNav from "./MobileNav";
 
-export default function Navbar() {
+export default function Navbar({ onBookClick }: { onBookClick?: () => void }) {
   const navRef = useRef<HTMLElement>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { toggle: toggleDark } = useDarkMode();
@@ -70,12 +70,12 @@ export default function Navbar() {
           <a className="hidden md:block nav-link" href="#contact">
             Contact
           </a>
-          <a
-            className="hidden lg:flex bg-primary text-white px-6 py-2.5 rounded-full hover:bg-primary-dark transition-all hover:shadow-lg hover:-translate-y-0.5 cursor-pointer items-center justify-center"
-            href="#contact"
+          <button
+            className="hidden lg:flex bg-primary text-white px-6 py-2.5 rounded-full hover:bg-primary-dark transition-all hover:shadow-lg hover:-translate-y-0.5 cursor-pointer items-center justify-center text-[0.8rem] uppercase tracking-widest font-semibold"
+            onClick={onBookClick}
           >
             Order Now
-          </a>
+          </button>
           <a
             className="hidden md:flex items-center gap-1 hover:text-primary transition-colors cursor-pointer"
             href="https://www.instagram.com/heavenlybakes.by.divya/"

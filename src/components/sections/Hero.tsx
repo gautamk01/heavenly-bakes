@@ -560,7 +560,7 @@ export default function Hero({ onBookClick }: { onBookClick?: () => void }) {
               <span className="material-icons text-lg md:text-xl">
                 collections
               </span>
-              Portfolio
+              Our Creations
             </Link>
           </div>
         </div>

@@ -6,8 +6,8 @@ import ScrollTrigger from "gsap/ScrollTrigger";
 const QUICK_LINKS = [
   { label: "Menu", href: "#menu" },
   { label: "Custom Orders", href: "#custom" },
-  { label: "Portfolio", to: "/portfolio" },
-  { label: "Track Order", to: "/track" },
+  { label: "Our Creations", to: "/portfolio" },
+
   { label: "Book a Cake", href: "#book" },
 ];
 

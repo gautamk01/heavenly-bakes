@@ -409,12 +409,12 @@ export default function Menu() {
                 <span className="absolute inset-0 bg-primary scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
                 <span className="relative z-10 inline-flex items-center gap-2">
                   <span className="material-icons text-lg">collections</span>
-                  View Full Portfolio
+                  View All Creations
                 </span>
               </button>
               <button className="sm:hidden w-full py-3.5 bg-primary text-white font-display text-sm rounded-full inline-flex items-center justify-center gap-2 cursor-pointer active:scale-[0.97] transition-transform">
                 <span className="material-icons text-base">collections</span>
-                View Full Portfolio
+                View All Creations
               </button>
             </Link>
           </div>

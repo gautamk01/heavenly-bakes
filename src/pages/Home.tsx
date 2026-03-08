@@ -22,7 +22,7 @@ export default function Home() {
     <>
       <SEOHead page="home" />
       <Preloader />
-      <Navbar />
+      <Navbar onBookClick={openBooking} />
       <Hero onBookClick={openBooking} />
       <About />
       <WhyUs />

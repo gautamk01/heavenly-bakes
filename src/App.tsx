@@ -4,7 +4,6 @@ import Home from "@/pages/Home";
 
 const Portfolio = lazy(() => import("@/pages/Portfolio"));
 const Admin = lazy(() => import("@/pages/Admin"));
-const Track = lazy(() => import("@/pages/Track"));
 
 export default function App() {
   return (
@@ -16,14 +15,6 @@ export default function App() {
           element={
             <Suspense fallback={<div className="min-h-screen" />}>
               <Portfolio />
-            </Suspense>
-          }
-        />
-        <Route
-          path="/track"
-          element={
-            <Suspense fallback={<div className="min-h-screen" />}>
-              <Track />
             </Suspense>
           }
         />

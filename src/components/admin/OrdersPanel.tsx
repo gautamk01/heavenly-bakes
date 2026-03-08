@@ -5,14 +5,16 @@ import type { Order, OrderStatus } from "@/types/order";
 import { ORDER_STATUS_LABELS } from "@/types/order";
 import OrderDetailModal from "./OrderDetailModal";
 
-type FilterType = "all" | "pending" | "active" | "ready" | "delivered";
+type FilterType = "all" | "pending" | "confirmed" | "cancelled" | "paid" | "unpaid" | "finished";
 
 const FILTER_TABS: { label: string; value: FilterType }[] = [
   { label: "All Orders", value: "all" },
   { label: "Pending", value: "pending" },
-  { label: "In Progress", value: "active" },
-  { label: "Ready", value: "ready" },
-  { label: "Delivered", value: "delivered" },
+  { label: "Confirmed", value: "confirmed" },
+  { label: "Paid", value: "paid" },
+  { label: "Unpaid", value: "unpaid" },
+  { label: "Finished", value: "finished" },
+  { label: "Cancelled", value: "cancelled" },
 ];
 
 const STATUS_COLORS: Record<OrderStatus, { badge: string; text: string }> = {
@@ -23,6 +25,7 @@ const STATUS_COLORS: Record<OrderStatus, { badge: string; text: string }> = {
   ready: { badge: "bg-green-100 dark:bg-green-900/30", text: "text-green-700 dark:text-green-400" },
   delivered: { badge: "bg-gray-100 dark:bg-gray-700", text: "text-gray-700 dark:text-gray-300" },
   cancelled: { badge: "bg-red-100 dark:bg-red-900/30", text: "text-red-700 dark:text-red-400" },
+  finished: { badge: "bg-emerald-100 dark:bg-emerald-900/30", text: "text-emerald-700 dark:text-emerald-400" },
 };
 
 export default function OrdersPanel() {
@@ -46,21 +49,22 @@ export default function OrdersPanel() {
   }, []);
 
   const filteredOrders = orders.filter((order) => {
-    if (filter === "all") return true;
+    if (filter === "all") return order.status !== "finished" && order.status !== "cancelled";
     if (filter === "pending") return order.status === "pending";
-    if (filter === "active")
-      return ["confirmed", "baking", "decorating"].includes(order.status);
-    if (filter === "ready") return order.status === "ready";
-    if (filter === "delivered") return order.status === "delivered";
+    if (filter === "confirmed") return order.status === "confirmed";
+    if (filter === "finished") return order.status === "finished";
+    if (filter === "cancelled") return order.status === "cancelled";
+    if (filter === "paid") return order.paymentStatus === "paid" && order.status !== "finished";
+    if (filter === "unpaid") return order.paymentStatus !== "paid" && order.status !== "cancelled" && order.status !== "finished";
     return true;
   });
 
   const stats = {
-    total: orders.length,
+    total: orders.filter((o) => o.status !== "finished" && o.status !== "cancelled").length,
     pending: orders.filter((o) => o.status === "pending").length,
-    active: orders.filter((o) => ["confirmed", "baking", "decorating"].includes(o.status))
-      .length,
-    ready: orders.filter((o) => o.status === "ready").length,
+    confirmed: orders.filter((o) => o.status === "confirmed").length,
+    unpaid: orders.filter((o) => o.paymentStatus !== "paid" && o.status !== "cancelled" && o.status !== "finished").length,
+    finished: orders.filter((o) => o.status === "finished").length,
   };
 
   const selectedOrder = selectedOrderId ? orders.find((o) => o.orderId === selectedOrderId) : null;
@@ -79,12 +83,13 @@ export default function OrdersPanel() {
   return (
     <div className="space-y-6">
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {[
-          { label: "Total Orders", value: stats.total },
+          { label: "Active Orders", value: stats.total },
           { label: "Pending", value: stats.pending, color: "text-yellow-600 dark:text-yellow-400" },
-          { label: "Active", value: stats.active, color: "text-orange-600 dark:text-orange-400" },
-          { label: "Ready", value: stats.ready, color: "text-green-600 dark:text-green-400" },
+          { label: "Confirmed", value: stats.confirmed, color: "text-blue-600 dark:text-blue-400" },
+          { label: "Unpaid", value: stats.unpaid, color: "text-red-600 dark:text-red-400" },
+          { label: "Finished", value: stats.finished, color: "text-emerald-600 dark:text-emerald-400" },
         ].map((stat) => (
           <div
             key={stat.label}
@@ -116,6 +121,11 @@ export default function OrdersPanel() {
                 {stats.pending}
               </span>
             )}
+            {tab.value === "unpaid" && stats.unpaid > 0 && (
+              <span className="ml-2 px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-xs font-bold">
+                {stats.unpaid}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -135,7 +145,7 @@ export default function OrdersPanel() {
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 mb-2">
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
                     <h4 className="font-mono font-bold text-gray-900 dark:text-white">
                       {order.orderId}
                     </h4>
@@ -144,9 +154,19 @@ export default function OrdersPanel() {
                     >
                       {ORDER_STATUS_LABELS[order.status]}
                     </span>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                        order.paymentStatus === "paid"
+                          ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+                          : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
+                      }`}
+                    >
+                      {order.paymentStatus === "paid" ? "Paid" : "Unpaid"}
+                    </span>
                   </div>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
                     {order.customerName} • {order.weight} {order.flavour}
+                    {order.sellingPrice ? ` • Rs ${order.sellingPrice}` : ""}
                   </p>
                   <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-500">
                     <span>{order.requestedDate} at {order.requestedTime}</span>

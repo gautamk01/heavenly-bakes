@@ -24,6 +24,8 @@ import AdminCakeCard from "@/components/admin/AdminCakeCard";
 import CakeFormModal from "@/components/admin/CakeFormModal";
 import DeleteConfirmModal from "@/components/admin/DeleteConfirmModal";
 import OrdersPanel from "@/components/admin/OrdersPanel";
+import FinancePanel from "@/components/admin/FinancePanel";
+import IngredientsPanel from "@/components/admin/IngredientsPanel";
 
 const PAGE_SIZE = 12;
 
@@ -38,7 +40,7 @@ interface FirestoreCake {
   [key: string]: unknown;
 }
 
-type AdminTab = "cakes" | "orders";
+type AdminTab = "cakes" | "orders" | "finance" | "ingredients";
 
 export default function Admin() {
   const [user, setUser] = useState<unknown>(null);
@@ -260,7 +262,8 @@ export default function Admin() {
       <div className="stats-bar">
         <div className="stat">
           <span className="material-icons">photo_library</span>
-          <span>{totalCount}</span> Total Cakes
+          <span className="stat-value">{totalCount}</span>
+          <span className="stat-label">Total Cakes</span>
         </div>
         {activeTab === "cakes" && (
           <button
@@ -271,116 +274,108 @@ export default function Admin() {
             }}
           >
             <span className="material-icons">add</span>
-            Add New Cake
+            <span className="btn-label">Add New Cake</span>
           </button>
         )}
       </div>
 
       {/* Tab Navigation */}
-      <div
-        style={{
-          display: "flex",
-          borderBottom: "1px solid #e5e7eb",
-          marginBottom: "24px",
-          gap: "8px",
-        }}
-        className="dark:border-gray-700"
-      >
+      <div className="admin-tabs-wrap">
         {[
-          { label: "Portfolio", icon: "photo_library", value: "cakes" as const },
+          {
+            label: "Portfolio",
+            icon: "photo_library",
+            value: "cakes" as const,
+          },
           { label: "Orders", icon: "receipt_long", value: "orders" as const },
+          {
+            label: "Finance",
+            icon: "account_balance_wallet",
+            value: "finance" as const,
+          },
+          {
+            label: "Ingredients",
+            icon: "inventory_2",
+            value: "ingredients" as const,
+          },
         ].map((tab) => (
           <button
             key={tab.value}
             onClick={() => setActiveTab(tab.value)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "12px 16px",
-              fontSize: "14px",
-              fontWeight: "500",
-              borderBottom: activeTab === tab.value ? "2px solid #d97762" : "none",
-              color: activeTab === tab.value ? "#d97762" : "#6b7280",
-              backgroundColor: "transparent",
-              border: "none",
-              cursor: "pointer",
-              transition: "all 0.2s ease",
-            }}
-            className={
-              activeTab === tab.value
-                ? "text-primary dark:text-primary-light"
-                : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-            }
+            className={`admin-tab${activeTab === tab.value ? " admin-tab-active" : ""}`}
           >
-            <span className="material-icons" style={{ fontSize: "20px" }}>
-              {tab.icon}
-            </span>
-            {tab.label}
+            <span className="material-icons">{tab.icon}</span>
+            <span className="admin-tab-label">{tab.label}</span>
           </button>
         ))}
       </div>
 
       {/* Content */}
-      {activeTab === "cakes" ? (
-        loading ? (
-          <div className="loading">
-            <div className="spinner" />
-            <p>Loading cakes...</p>
-          </div>
-        ) : cakes.length === 0 ? (
-          <div className="empty-state">
-            <span className="material-icons">cake</span>
-            <p>No cakes yet. Add your first creation!</p>
-          </div>
-        ) : (
-          <>
-            <div className="cake-grid">
-              {cakes.map((cake) => (
-                <AdminCakeCard
-                  key={cake.id}
-                  cake={cake}
-                  onEdit={() => {
-                    setEditCake(cake);
-                    setFormOpen(true);
-                  }}
-                  onDelete={() => {
-                    setDeleteTarget(cake);
-                    setDeleteOpen(true);
-                  }}
-                />
-              ))}
+      <div className="admin-content">
+        {activeTab === "cakes" ? (
+          loading ? (
+            <div className="loading">
+              <div className="spinner" />
+              <p>Loading cakes...</p>
             </div>
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="pagination">
-                <button
-                  className="btn-ghost"
-                  onClick={loadPrevPage}
-                  disabled={!hasPrev}
-                >
-                  <span className="material-icons">chevron_left</span>
-                  Prev
-                </button>
-                <span className="pagination-info">
-                  Page {page} of {totalPages}
-                </span>
-                <button
-                  className="btn-ghost"
-                  onClick={loadNextPage}
-                  disabled={!hasNext}
-                >
-                  Next
-                  <span className="material-icons">chevron_right</span>
-                </button>
+          ) : cakes.length === 0 ? (
+            <div className="empty-state">
+              <span className="material-icons">cake</span>
+              <p>No cakes yet. Add your first creation!</p>
+            </div>
+          ) : (
+            <>
+              <div className="cake-grid">
+                {cakes.map((cake) => (
+                  <AdminCakeCard
+                    key={cake.id}
+                    cake={cake}
+                    onEdit={() => {
+                      setEditCake(cake);
+                      setFormOpen(true);
+                    }}
+                    onDelete={() => {
+                      setDeleteTarget(cake);
+                      setDeleteOpen(true);
+                    }}
+                  />
+                ))}
               </div>
-            )}
-          </>
-        )
-      ) : (
-        <OrdersPanel />
-      )}
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="pagination">
+                  <button
+                    className="btn-ghost"
+                    onClick={loadPrevPage}
+                    disabled={!hasPrev}
+                  >
+                    <span className="material-icons">chevron_left</span>
+                    <span>Prev</span>
+                  </button>
+                  <span className="pagination-info">
+                    Page {page} of {totalPages}
+                  </span>
+                  <button
+                    className="btn-ghost"
+                    onClick={loadNextPage}
+                    disabled={!hasNext}
+                  >
+                    <span>Next</span>
+                    <span className="material-icons">chevron_right</span>
+                  </button>
+                </div>
+              )}
+            </>
+          )
+        ) : activeTab === "orders" ? (
+          <OrdersPanel />
+        ) : activeTab === "finance" ? (
+          <FinancePanel />
+        ) : (
+          <IngredientsPanel />
+        )}
+      </div>
 
       {/* Add/Edit Modal */}
       <CakeFormModal
@@ -392,7 +387,9 @@ export default function Admin() {
                 title: editCake.title,
                 description: editCake.description || "",
                 images: editCake.images || (editCake.src ? [editCake.src] : []),
-                tags: (editCake as Record<string, unknown>).tags as string[] | undefined,
+                tags: (editCake as Record<string, unknown>).tags as
+                  | string[]
+                  | undefined,
               }
             : null
         }
