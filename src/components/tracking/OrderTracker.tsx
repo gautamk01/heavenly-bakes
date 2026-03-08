@@ -10,6 +10,7 @@ const STEP_ICONS: Record<OrderStatus, string> = {
   ready: "inventory_2",
   delivered: "local_shipping",
   cancelled: "cancel",
+  finished: "task_alt",
 };
 
 export default function OrderTracker({ order }: { order: Order }) {

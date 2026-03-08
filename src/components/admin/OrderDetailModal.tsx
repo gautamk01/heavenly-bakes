@@ -24,6 +24,7 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
   ready: "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400",
   delivered: "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300",
   cancelled: "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400",
+  finished: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400",
 };
 
 interface Ingredient {
