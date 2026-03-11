@@ -211,7 +211,7 @@ export default function ScatterGallery() {
         end: () => `+=${vh * SCROLL_VH}`,
         pin: true,
         pinSpacing: true,
-        pinType: "transform",
+        anticipatePin: 1,
         animation: tween,
         scrub: 2,
         onUpdate: ({ progress }) => {
@@ -249,6 +249,22 @@ export default function ScatterGallery() {
         },
       });
 
+      // --- Pull next section up to eliminate 100vh gap after unpin ---
+      // When the pin ends, the gallery appears again in normal flow. This
+      // negative margin on the following section hides that duplicate.
+      let nextSectionEl: HTMLElement | null = null;
+      const pullUpNextSection = () => {
+        const spacer = gallery.parentElement;
+        if (spacer) {
+          const next = spacer.nextElementSibling as HTMLElement | null;
+          if (next) {
+            nextSectionEl = next;
+            next.style.marginTop = `-${vh}px`;
+          }
+        }
+      };
+      requestAnimationFrame(pullUpNextSection);
+
       // Resize handler
       let resizeTimer: ReturnType<typeof setTimeout>;
       const onResize = () => {
@@ -257,6 +273,7 @@ export default function ScatterGallery() {
           vw = window.innerWidth;
           vh = window.innerHeight;
           ScrollTrigger.refresh();
+          requestAnimationFrame(pullUpNextSection);
         }, 250);
       };
       window.addEventListener("resize", onResize);
@@ -264,6 +281,7 @@ export default function ScatterGallery() {
       return () => {
         window.removeEventListener("resize", onResize);
         clearTimeout(resizeTimer);
+        if (nextSectionEl) nextSectionEl.style.marginTop = "";
         st.kill();
         tween.kill();
         strip.remove();
