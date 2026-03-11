@@ -205,15 +205,30 @@ export default function ScatterGallery() {
         ease: "none",
       });
 
+      // Hide gallery until pin starts — prevents visual snap during
+      // the position:relative → position:fixed transition
+      gsap.set(gallery, { visibility: "hidden" });
+
       const st = ScrollTrigger.create({
         trigger: ".scatter-gallery",
         start: "top top",
         end: () => `+=${vh * SCROLL_VH}`,
         pin: true,
         pinSpacing: true,
-        anticipatePin: 1,
         animation: tween,
         scrub: 2,
+        onEnter: () => {
+          gsap.set(gallery, { visibility: "visible", opacity: 1 });
+        },
+        onLeave: () => {
+          gsap.set(gallery, { visibility: "hidden" });
+        },
+        onEnterBack: () => {
+          gsap.set(gallery, { visibility: "visible", opacity: 1 });
+        },
+        onLeaveBack: () => {
+          gsap.set(gallery, { visibility: "hidden" });
+        },
         onUpdate: ({ progress }) => {
           // Update progress bar fill
           progressFill.style.width = `${progress * 100}%`;
@@ -282,6 +297,7 @@ export default function ScatterGallery() {
         window.removeEventListener("resize", onResize);
         clearTimeout(resizeTimer);
         if (nextSectionEl) nextSectionEl.style.marginTop = "";
+        gsap.set(gallery, { visibility: "visible", opacity: 1 });
         st.kill();
         tween.kill();
         strip.remove();
