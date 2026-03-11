@@ -87,13 +87,13 @@ export default function Hero({ onBookClick }: { onBookClick?: () => void }) {
           const isDesktop = !isMobile;
           const tl = gsap.timeline();
 
-          // Phase 1: Images fly in
+          // Phase 1: Images fly in (faster on mobile)
           tl.to(".hero-carousel-img.scatter-img", {
             opacity: isDesktop ? 1 : 0.3,
             scale: 1,
-            duration: 0.8,
+            duration: isDesktop ? 0.8 : 0.5,
             ease: "back.out(1.4)",
-            stagger: 0.2,
+            stagger: isDesktop ? 0.2 : 0.1,
           });
 
           // Phase 2: SVG line-art draws in (overlapping with images)
@@ -111,29 +111,29 @@ export default function Hero({ onBookClick }: { onBookClick?: () => void }) {
               ".hero-line-art",
               {
                 opacity: isDesktop ? 0.18 : 0.12,
-                duration: 1,
+                duration: isDesktop ? 1 : 0.5,
                 ease: "power2.out",
-                stagger: 0.15,
+                stagger: isDesktop ? 0.15 : 0.08,
               },
-              0.3,
+              isDesktop ? 0.3 : 0.1,
             );
             tl.to(
               heroLinePaths,
               {
                 strokeDashoffset: 0,
-                duration: isDesktop ? 2.5 : 1.8,
+                duration: isDesktop ? 2.5 : 1,
                 ease: "power2.inOut",
-                stagger: isDesktop ? 0.3 : 0.2,
+                stagger: isDesktop ? 0.3 : 0.1,
               },
-              0.3,
+              isDesktop ? 0.3 : 0.1,
             );
           }
 
-          // Phase 3: Text content appears
+          // Phase 3: Text content appears (earlier on mobile)
           tl.to(
             ".hero-text-content",
-            { opacity: 1, duration: 0.4, ease: "power2.out" },
-            0.6,
+            { opacity: 1, duration: isDesktop ? 0.4 : 0.3, ease: "power2.out" },
+            isDesktop ? 0.6 : 0.2,
           );
 
           if (headlineSplit) {
@@ -141,8 +141,8 @@ export default function Hero({ onBookClick }: { onBookClick?: () => void }) {
               headlineSplit.chars,
               {
                 y: 0,
-                stagger: isDesktop ? 0.03 : 0.02,
-                duration: isDesktop ? 1 : 0.8,
+                stagger: isDesktop ? 0.03 : 0.015,
+                duration: isDesktop ? 1 : 0.5,
                 ease: "power4.out",
                 onComplete: () => {
                   document.querySelectorAll("main h1 .char").forEach((el) => {
@@ -151,7 +151,7 @@ export default function Hero({ onBookClick }: { onBookClick?: () => void }) {
                   });
                 },
               },
-              0.7,
+              isDesktop ? 0.7 : 0.3,
             );
           }
 
@@ -160,30 +160,30 @@ export default function Hero({ onBookClick }: { onBookClick?: () => void }) {
               subtextSplit.lines,
               {
                 y: 0,
-                stagger: 0.1,
-                duration: isDesktop ? 1 : 0.8,
+                stagger: isDesktop ? 0.1 : 0.05,
+                duration: isDesktop ? 1 : 0.5,
                 ease: "power4.out",
               },
-              0.9,
+              isDesktop ? 0.9 : 0.4,
             );
           }
 
-          // Phase 4: Buttons pop in
+          // Phase 4: Buttons pop in (faster on mobile)
           tl.to(
             ".btn-oval",
             {
               scale: 1,
               opacity: 1,
-              duration: 0.8,
+              duration: isDesktop ? 0.8 : 0.5,
               ease: "back.out(1.7)",
-              stagger: 0.15,
+              stagger: isDesktop ? 0.15 : 0.08,
             },
-            1.2,
+            isDesktop ? 1.2 : 0.5,
           );
 
-          // Phase 5: Start carousel after reveal settles
+          // Phase 5: Start carousel after reveal settles (faster on mobile)
           tl.call(() => {
-            gsap.delayedCall(2, startCarousel);
+            gsap.delayedCall(isDesktop ? 2 : 1, startCarousel);
           });
         });
       } else {
