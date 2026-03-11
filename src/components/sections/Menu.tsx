@@ -190,22 +190,29 @@ export default function Menu() {
     return () => ctx.revert();
   }, []);
 
-  // ── Animate cards on change ─────────────────────────────────────────────
+  // ── Animate cards on scroll via batching ────────────────────────────────
   useEffect(() => {
     if (!gridRef.current || displayedCakes.length === 0) return;
     const ctx = gsap.context(() => {
-      gsap.fromTo(
-        ".menu-cake-card",
-        { y: 28, opacity: 0, scale: 0.97 },
-        {
-          y: 0,
-          opacity: 1,
-          scale: 1,
-          duration: 0.45,
-          stagger: 0.05,
-          ease: "power3.out",
-        },
-      );
+      // Set initial state before batching starts
+      gsap.set(".menu-cake-card", { y: 30, opacity: 0, scale: 0.95 });
+
+      ScrollTrigger.batch(".menu-cake-card", {
+        interval: 0.1,
+        batchMax: 4,
+        onEnter: (batch) =>
+          gsap.to(batch, {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            stagger: { each: 0.05, grid: [1, batch.length] },
+            duration: 0.5,
+            ease: "power3.out",
+            overwrite: true,
+          }),
+        onLeaveBack: (batch) =>
+          gsap.set(batch, { opacity: 0, y: 30, scale: 0.95, overwrite: true }),
+      });
     }, gridRef);
     return () => ctx.revert();
   }, [displayedCakes]);
@@ -367,9 +374,9 @@ export default function Menu() {
                     <img
                       src={thumbUrl(cake.src)}
                       alt={cake.alt}
-                      loading="lazy"
-                      decoding="async"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      // Note: Intentionally eager loading these 8 thumbnails to prevent 
+                      // mobile Safari scroll-up jank (lazy loading offscreen images causes severe dropping frames)
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 will-change-transform"
                     />
 
                     {/* Expand icon on hover */}
