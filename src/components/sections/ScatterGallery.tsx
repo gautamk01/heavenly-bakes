@@ -211,10 +211,9 @@ export default function ScatterGallery() {
         end: () => `+=${vh * SCROLL_VH}`,
         pin: true,
         pinSpacing: true,
-        anticipatePin: 1,
+        pinType: "transform",
         animation: tween,
-        scrub: 1.5,
-        fastScrollEnd: true,
+        scrub: 2,
         onUpdate: ({ progress }) => {
           // Update progress bar fill
           progressFill.style.width = `${progress * 100}%`;

@@ -103,7 +103,8 @@ exports.telegramWebhook = functions.https.onRequest(async (req, res) => {
         const chatId = message.chat.id;
         const text = (message.text || "").trim();
 
-        if (chatId.toString() !== process.env.TELEGRAM_ALLOWED_CHAT_ID) {
+        const allowedIds = (process.env.TELEGRAM_ALLOWED_CHAT_ID || "").split(",").map(id => id.trim());
+        if (!allowedIds.includes(chatId.toString())) {
             res.status(200).json({ ok: true });
             return;
         }
@@ -247,7 +248,8 @@ async function handleCallbackQuery(query) {
     const messageId = query.message.message_id;
     const data = query.data;
 
-    if (chatId.toString() !== process.env.TELEGRAM_ALLOWED_CHAT_ID) return;
+    const allowedIds = (process.env.TELEGRAM_ALLOWED_CHAT_ID || "").split(",").map(id => id.trim());
+    if (!allowedIds.includes(chatId.toString())) return;
 
     if (data === "noop") {
         await answerCallback(query.id);
@@ -1221,10 +1223,18 @@ async function answerCallback(callbackQueryId, text) {
 
 async function sendTelegramMessage(text, chatId, inlineKeyboard) {
     const token = process.env.TELEGRAM_BOT_TOKEN;
-    const targetChatId = chatId || process.env.TELEGRAM_ALLOWED_CHAT_ID;
+
+    // If no specific chatId, broadcast to all allowed IDs
+    if (!chatId) {
+        const allIds = (process.env.TELEGRAM_ALLOWED_CHAT_ID || "").split(",").map(id => id.trim()).filter(Boolean);
+        for (const id of allIds) {
+            await sendTelegramMessage(text, id, inlineKeyboard);
+        }
+        return;
+    }
 
     const body = {
-        chat_id: targetChatId,
+        chat_id: chatId,
         text,
         parse_mode: "HTML",
     };
