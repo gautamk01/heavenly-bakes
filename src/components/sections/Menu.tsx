@@ -95,7 +95,7 @@ function Lightbox({ src, alt, onClose }: LightboxProps) {
       <img
         src={src}
         alt={alt}
-        className="max-h-[70vh] max-w-[min(500px,85vw)] object-contain rounded-xl shadow-2xl"
+        className="max-h-[80vh] max-w-[min(500px,92vw)] object-contain rounded-xl shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       />
     </div>
@@ -214,7 +214,7 @@ export default function Menu() {
     <section
       ref={sectionRef}
       id="menu"
-      className="relative isolate overflow-hidden py-16 md:py-24 bg-white dark:bg-zinc-950"
+      className="relative isolate overflow-hidden py-10 md:py-24 bg-white dark:bg-zinc-950"
     >
       {/* Subtle bakery doodles — desktop only */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden hidden sm:block">
@@ -248,13 +248,13 @@ export default function Menu() {
 
       <div className="relative z-10 max-w-6xl mx-auto px-4 md:px-8 lg:px-12">
         {/* ── Section label ─────────────────────────────────────────────── */}
-        <p className="text-center font-body text-primary/60 text-xs md:text-sm tracking-[0.3em] uppercase mb-3">
+        <p className="text-center font-body text-primary/60 text-xs md:text-sm tracking-[0.3em] uppercase mb-2 md:mb-3">
           Browse Our Creations
         </p>
 
         {/* ── Hero Search ─────────────────────────────────────────────────── */}
-        <div className="menu-hero-search max-w-2xl mx-auto mb-6 md:mb-8">
-          <h2 className="font-display text-3xl md:text-5xl text-primary text-center leading-tight mb-6">
+        <div className="menu-hero-search max-w-2xl mx-auto mb-4 md:mb-8">
+          <h2 className="font-display text-2xl md:text-5xl text-primary text-center leading-tight mb-4 md:mb-6">
             Find Your{" "}
             <span className="italic font-light text-black dark:text-white">
               perfect cake
@@ -263,7 +263,7 @@ export default function Menu() {
 
           {/* Search input */}
           <div className="relative">
-            <span className="material-icons absolute left-4 top-1/2 -translate-y-1/2 text-primary/40 text-xl select-none">
+            <span className="material-icons absolute left-3 md:left-4 top-1/2 -translate-y-1/2 text-primary/40 text-lg md:text-xl select-none">
               search
             </span>
             <input
@@ -271,7 +271,7 @@ export default function Menu() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Try &ldquo;wedding&rdquo;, &ldquo;car theme&rdquo;, &ldquo;gold&rdquo;…"
-              className="w-full pl-12 pr-12 py-4 md:py-5 rounded-2xl border-2 border-primary/20 bg-white dark:bg-zinc-800 font-body text-base md:text-lg text-primary placeholder:text-primary/35 focus:outline-none focus:border-primary/60 shadow-lg shadow-primary/5 transition-all duration-200"
+              className="w-full pl-10 md:pl-12 pr-10 md:pr-12 py-3 md:py-5 rounded-xl md:rounded-2xl border-2 border-primary/20 bg-white dark:bg-zinc-800 font-body text-sm md:text-lg text-primary placeholder:text-primary/35 focus:outline-none focus:border-primary/60 shadow-lg shadow-primary/5 transition-all duration-200"
             />
             {search && (
               <button
@@ -286,14 +286,14 @@ export default function Menu() {
         </div>
 
         {/* ── Keyword Chips ───────────────────────────────────────────────── */}
-        <div className="menu-chips flex flex-wrap justify-center gap-2 md:gap-2.5 mb-10 md:mb-14">
+        <div className="menu-chips flex flex-wrap justify-center gap-1.5 md:gap-2.5 mb-6 md:mb-14">
           {FEATURED_KEYWORDS.map((kw) => {
             const active = search.toLowerCase() === kw.toLowerCase();
             return (
               <button
                 key={kw}
                 onClick={() => handleChip(kw)}
-                className={`px-4 md:px-5 py-2 md:py-2.5 rounded-full text-sm md:text-base font-body capitalize transition-all duration-200 cursor-pointer border ${
+                className={`px-3 md:px-5 py-1.5 md:py-2.5 rounded-full text-xs md:text-base font-body capitalize transition-all duration-200 cursor-pointer border ${
                   active
                     ? "bg-primary text-white border-primary shadow-md shadow-primary/20 scale-105"
                     : "bg-white dark:bg-zinc-800 text-primary/70 border-primary/20 hover:border-primary/50 hover:bg-primary/5"
@@ -350,17 +350,17 @@ export default function Menu() {
 
             <div
               ref={gridRef}
-              className="columns-2 sm:columns-3 lg:columns-4 gap-3 md:gap-4 [column-fill:balance]"
+              className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 md:gap-4"
             >
               {displayedCakes.map((cake) => (
                 <div
                   key={cake.id}
-                  className="menu-cake-card break-inside-avoid mb-3 md:mb-4 group cursor-pointer"
+                  className="menu-cake-card group cursor-pointer"
                   onClick={() =>
                     setLightbox({ src: lightboxUrl(cake.src), alt: cake.alt })
                   }
                 >
-                  <div className="relative overflow-hidden rounded-xl">
+                  <div className="relative overflow-hidden rounded-lg md:rounded-xl aspect-3/4">
                     {/* Hover overlay */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10" />
 
@@ -369,7 +369,7 @@ export default function Menu() {
                       alt={cake.alt}
                       loading="lazy"
                       decoding="async"
-                      className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-500"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
 
                     {/* Expand icon on hover */}
